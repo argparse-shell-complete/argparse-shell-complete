@@ -1,0 +1,88 @@
+#!/usr/bin/python3
+
+import argparse
+
+try:
+    from argparse_shell_complete import argparse_mod
+except:
+    argparse.Action.complete            = lambda s, *_: s
+    argparse.Action.set_multiple_option = lambda s, *_: s
+
+argp = argparse.ArgumentParser(prog='argparse-shell-complete-test',
+    description='Test argument parser for shell completion')
+
+argp.add_argument('--version',    action='version')
+
+# =============================================================================
+# SUBCOMMANDS
+# =============================================================================
+subp = argp.add_subparsers(description='commands')
+
+# =============================================================================
+# Command 'complete'
+# =============================================================================
+cmdp = subp.add_parser('complete', help='Test complete commands')
+
+cmdp.add_argument('--file',             help='Complete a file').complete('file')
+cmdp.add_argument('--directory',        help='Complete a directory').complete('directory')
+cmdp.add_argument('--file-tmp',         help='Complete a file in /tmp').complete('file', {'directory': '/tmp'})
+cmdp.add_argument('--directory-tmp',    help='Complete a directory in /tmp').complete('directory', {'directory': '/tmp'})
+cmdp.add_argument('--user',             help='Complete a user').complete('user')
+cmdp.add_argument('--group',            help='Complete a group').complete('group')
+cmdp.add_argument('--command',          help='Complete a command').complete('command')
+cmdp.add_argument('--process',          help='Complete a process').complete('process')
+cmdp.add_argument('--pid',              help='Complete a pid').complete('pid')
+cmdp.add_argument('--signal',           help='Complete a signal').complete('signal')
+cmdp.add_argument('--hostname',         help='Complete a hostname').complete('hostname')
+cmdp.add_argument('--variable',         help='Complete a variable').complete('variable')
+cmdp.add_argument('--service',          help='Complete a service').complete('service')
+cmdp.add_argument('--choices',          help='Complete from choices', choices=(1,'two and a half',3))
+cmdp.add_argument('--range',            help='Complete a range', type=int, choices=range(1,9,2))
+
+# =============================================================================
+# Command 'argparse-actions'
+# =============================================================================
+cmdp = subp.add_parser('argparse-actions', help='argparse tool actions')
+
+cmdp.add_argument('--store-true',           help='A option flag', action='store_true')
+cmdp.add_argument('--store-false',          help='A option flag', action='store_false')
+cmdp.add_argument('--store-const',          help='A option flag', action='store_const', const='bar')
+cmdp.add_argument('--append-const',         help='A option flag', action='append_const', const='bar')
+cmdp.add_argument('--append',               help='A option flag', action='append')
+cmdp.add_argument('--count',                help='A option flag', action='count')
+cmdp.add_argument('--extend',               help='A option flag', action='extend')
+
+# =============================================================================
+# Command 'subcommand'
+# =============================================================================
+cmdp = subp.add_parser('subcommand', help='Test nested subcommands')
+
+cmdp.add_argument('--subcommand-choices',    help='Complete from choices', choices=(1,'two and a half',3))
+
+subp1 = cmdp.add_subparsers(description='commands')
+
+cmdp1 = subp1.add_parser('sub-subcommand', help='Nested subcommand')
+
+cmdp1.add_argument('--sub-subcommand-choices',    help='Complete from choices', choices=(1,'two and a half',3))
+
+# =============================================================================
+# Command 'test'
+# =============================================================================
+cmdp = subp.add_parser('test',  help='For testing the completer')
+
+cmdp.add_argument('-f', '--flag',       help='A option flag', action='store_true') # TODO: remove me
+cmdp.add_argument('-o', '--optional',   nargs='?', choices=(1,2,3))
+cmdp.add_argument('-c', '--choices',    help='Complete from choices', choices=(1,'two and a half',3))
+cmdp.add_argument('--special-chars-in-description', help='Here are some special chars: $"\'\\[]*`)')
+cmdp.add_argument('--multiple-option', action='store_true').set_multiple_option()
+cmdp.add_argument('--multiple-option-with-arg').set_multiple_option()
+
+group = cmdp.add_mutually_exclusive_group()
+group.add_argument('--exclusive-1', action='store_true')
+group.add_argument('--exclusive-2', action='store_true')
+
+cmdp.add_argument('positional_1', help='First positional', choices=('first1', 'first2', 'first3'))
+cmdp.add_argument('optional', help='Optional positional', choices=('optional1', 'optional2'), nargs='?')
+
+if __name__ == '__main__':
+    argp.parse_args()

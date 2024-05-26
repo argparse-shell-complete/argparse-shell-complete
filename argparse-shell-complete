@@ -1,0 +1,146 @@
+#!/usr/bin/python3
+
+import sys, os, argparse, importlib, tempfile
+from argparse_shell_complete import zsh, bash, fish, commandline
+from argparse_shell_complete import config as _config
+
+def parse_bool(s):
+    if s.lower() == 'true':  return True
+    if s.lower() == 'false': return False
+    raise Exception("Not a bool: %r" % s)
+
+p = argparse.ArgumentParser('argparse-shell-complete', description='Generate shell completion files using pythons argparse module')
+p.add_argument('action')
+p.add_argument('program_file')
+p.add_argument('--parser_variable', default=None, help='Specify parser variable')
+p.add_argument('-o', '--output',    default=None, help='Destination file [default: stdout]')
+p.add_argument('--program_name',    default=None, help='Program name')
+p.add_argument('--abbreviate-commands', default=False, type=parse_bool)
+p.add_argument('--abbreviate-options', default=False, type=parse_bool)
+p.add_argument('--multiple-options', default=False, type=parse_bool)
+p.add_argument('--inherit-options', default=False, type=parse_bool)
+p.add_argument('--vim-modeline', default=True, type=parse_bool)
+p.add_argument('--include-file', action='append', help='Include file in output')
+
+# We use an unique object name for avoinding name clashes when
+# importing/executing the foreign python script
+_argparse_shell_complete_argument_parser = p
+del p
+
+def close_output_streams():
+    sys.stdout = sys.stderr = open(os.devnull, 'w')
+
+def restore_output_streams():
+    sys.stdout = sys.__stdout__
+    sys.stderr = sys.__stderr__
+
+def find_ArgumentParser(module):
+    found_parsers = []
+
+    for obj_name in dir(module):
+        obj = getattr(module, obj_name)
+        if isinstance(obj, argparse.ArgumentParser) and obj is not _argparse_shell_complete_argument_parser:
+            found_parsers.append(obj)
+
+    if len(found_parsers) == 1:
+        return found_parsers[0]
+    elif len(found_parsers) > 1:
+        # Find root parser
+        # TODO: this doesn't work well with multiple subcommands ("prog cmd1 cmd2")
+        for parser in found_parsers:
+            if parser._subparsers is not None:
+                return parser
+
+    return None
+
+def execute_file(file):
+    ''' Import file using exec '''
+
+    import __main__
+
+    close_output_streams()
+
+    with open(file, 'r') as fh:
+        source = fh.read()
+        compiled = compile(source, file, 'exec')
+        try:   exec(compiled, globals())
+        except SystemExit: pass
+
+    restore_output_streams()
+
+    return __main__
+
+def import_file(file):
+    ''' Import file using importlib '''
+
+    directory, file = os.path.split(file)
+    if file.lower().endswith('.py'):
+        file = file[:-3]
+    else:
+        temp = tempfile.NamedTemporaryFile(mode='w', suffix='.py')
+        with open(file, 'r') as fh:
+            temp.file.write(fh.read())
+            temp.flush()
+
+        directory, file = os.path.split(temp.name)
+        file = file[:-3]
+        
+    if not directory:
+        directory = '.'
+
+    if directory not in sys.path:
+        sys.path.append(directory)
+
+    return importlib.import_module(file)
+
+def generate(opts):
+    try:
+        module = import_file(opts.program_file)
+    except Exception as e:
+        print(e)
+        print("Warning: failed to load `%s` using importlib, falling back to `exec`" % opts.program_file, file=sys.stderr)
+        module = execute_file(opts.program_file)
+
+    if opts.parser_variable:
+        parser = getattr(module, opts.parser_variable)
+    else:
+        parser = find_ArgumentParser(module)
+
+    if parser is None:
+        print("Could not get ArgumentParser object from `%s`" % opts.program_file, file=sys.stderr)
+        sys.exit(1)
+
+    if opts.program_name is None:
+        opts.program_name = parser.prog
+
+    cmdline = commandline.ArgumentParser_to_CommandLine(parser)
+    config = _config.Config()
+    config.set_abbreviate_commands(opts.abbreviate_commands)
+    config.set_abbreviate_options(opts.abbreviate_options)
+    config.set_multiple_options(opts.multiple_options)
+    config.set_inherit_options(opts.inherit_options)
+    config.set_vim_modeline(opts.vim_modeline)
+    if opts.include_file:
+        config.include_many_files(opts.include_file)
+
+    r = {
+        'bash': bash.generate_completion,
+        'fish': fish.generate_completion,
+        'zsh':  zsh.generate_completion
+    }[opts.action](cmdline, opts.program_name, config)
+
+    if opts.output is not None:
+        with open(opts.output, 'w') as fh:
+            fh.write(r)
+    else:
+        print(r)
+
+try:
+    opts = _argparse_shell_complete_argument_parser.parse_args()
+    generate(opts)
+except Exception as e:
+    print('Error:', e, file=sys.stderr)
+    print('Options:', opts, file=sys.stderr)
+    raise
+    sys.exit(1)
+

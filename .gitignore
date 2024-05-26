@@ -1,0 +1,4 @@
+build/
+dist/
+argparse_tool.egg-info/
+__pycache__
