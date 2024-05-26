@@ -20,6 +20,13 @@ Installation
   makepkg && sudo pacman -U python-argparse-shell-complete*.pkg.*
   ```
 
+- For other Linux distributions:
+  ```
+  git clone https://github.com/argparse-shell-complete/argparse-shell-complete
+  cd argparse-shell-complete
+  sudo ./setup.py install
+  ```
+
 Synopsis
 ========
 
