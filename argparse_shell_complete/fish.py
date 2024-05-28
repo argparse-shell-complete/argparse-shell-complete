@@ -33,7 +33,7 @@ class FishCompleter(shell.ShellCompleter):
             funcname = '%s_%s' % (shell.make_completion_funcname(ctxt.commandline), ctxt.option.option_strings[0])
             code = 'printf "%s\\t%s\\n" \\\n'
             for item, description in choices.items():
-                code += '  %s %s \\\n' % (shell.escape(str(item)), shell.escape(description))
+                code += '  %s %s \\\n' % (shell.escape(str(item)), shell.escape(str(description)))
             code = code.rstrip('\\\n ')
 
             ctxt.helpers.add_function(helpers.FishFunction(funcname, code))
