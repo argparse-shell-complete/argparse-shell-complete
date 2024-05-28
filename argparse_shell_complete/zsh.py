@@ -16,7 +16,7 @@ class ZshCompleter(shell.ShellCompleter):
             funcname = '%s_%s' % (shell.make_completion_funcname(ctxt.commandline), ctxt.option.option_strings[0])
             code  = 'local -a DESCRIBE=(\n'
             for item, description in choices.items():
-                code += '  %s\n' % shell.escape("%s:%s" % (str(item), description))
+                code += '  %s:%s\n' % (shell.escape(escape_colon(str(item))), shell.escape(str(description)))
             code += ')\n\n'
             code += '_describe -- %s DESCRIBE' % shell.escape(ctxt.option.option_strings[0])
 
@@ -63,7 +63,7 @@ class ZshCompleter(shell.ShellCompleter):
         return '_pids'
 
     def process(self, ctxt):
-        return '_process_names'
+        return '"_process_names -a"'
 
     def range(self, ctxt, start, stop, step=1):
         if step == 1:
@@ -79,7 +79,7 @@ class ZshCompleter(shell.ShellCompleter):
 
     def exec(self, ctxt, command):
         funcname = ctxt.helpers.use('exec', True)
-        return shell.escape('{%s %s}' % (funcname, command))
+        return shell.escape('{%s %s}' % (funcname, shell.escape(command)))
 
 def escape_colon(s):
     return s.replace(':', '\\:')
