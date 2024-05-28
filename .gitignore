@@ -1,4 +1,8 @@
+argparse_shell_complete.egg-info/
 build/
 dist/
-argparse_tool.egg-info/
+pkg/
+src/
+python-argparse-shell-complete/
+python-argparse-shell-complete-*.pkg.*
 __pycache__
