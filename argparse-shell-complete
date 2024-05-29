@@ -10,7 +10,7 @@ def parse_bool(s):
     raise Exception("Not a bool: %r" % s)
 
 p = argparse.ArgumentParser('argparse-shell-complete', description='Generate shell completion files using pythons argparse module')
-p.add_argument('action')
+p.add_argument('shell', choices=('bash', 'fish', 'zsh'))
 p.add_argument('program_file')
 p.add_argument('--parser_variable', default=None, help='Specify parser variable')
 p.add_argument('-o', '--output',    default=None, help='Destination file [default: stdout]')
@@ -127,7 +127,7 @@ def generate(opts):
         'bash': bash.generate_completion,
         'fish': fish.generate_completion,
         'zsh':  zsh.generate_completion
-    }[opts.action](cmdline, opts.program_name, config)
+    }[opts.shell](cmdline, opts.program_name, config)
 
     if opts.output is not None:
         with open(opts.output, 'w') as fh:
