@@ -13,6 +13,7 @@ setup(
     url='https://github.com/argparse-shell-complete/argparse-shell-complete',
     classifiers=[
         'Programming Language :: Python :: 3',
+        'Programming Language :: Unix Shell',
         'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
         'Operating System :: OS Independent',
         'Development Status :: 4 - Beta',
@@ -21,6 +22,7 @@ setup(
         'Intended Audience :: Developers',
         'Topic :: Software Development :: Libraries :: Python Modules',
         'Topic :: Software Development :: User Interfaces',
+        'Topic :: Software Development :: Code Generators',
         'Topic :: System :: Shells',
         'Topic :: Utilities',
     ],
