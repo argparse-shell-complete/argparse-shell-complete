@@ -1,5 +1,5 @@
 argparse-shell-complete
-======================
+=======================
 
 Generate shell completion files using pythons argparse module.
 
@@ -30,9 +30,7 @@ Installation
 Synopsis
 ========
 
-```
-argparse-shell-complete [OPTIONS] {bash,fish,zsh} <PARSER_FILE>
-```
+> `argparse-shell-complete [OPTIONS] {bash,fish,zsh} <PARSER_FILE>`
 
 Options
 =======
