@@ -3,8 +3,6 @@
 import subprocess
 
 from . import shell, utils
-from . import commandline as _commandline
-from . import config as _config
 from . import bash_helpers
 from . import modeline
 
@@ -358,7 +356,7 @@ done'''
             def add(self, completion_code, option_strings):
                 r  = '%s)\n' % '|'.join(option_strings)
                 if completion_code:
-                      r += '%s\n' % utils.indent(completion_code, 2)
+                    r += '%s\n' % utils.indent(completion_code, 2)
                 r += '  return 0;;'
                 self.code.append(r)
 
@@ -425,18 +423,24 @@ done'''
             complete_options.add(completion_code, option.option_strings)
 
             if len(short_option_strings):
-                if option.takes_args == '?': complete_short_with_optional_arg.add(short_option_strings, short_option_strings)
-                else:                        complete_short_with_required_arg.add(short_option_strings, short_option_strings)
+                if option.takes_args == '?':
+                    complete_short_with_optional_arg.add(short_option_strings, short_option_strings)
+                else:
+                    complete_short_with_required_arg.add(short_option_strings, short_option_strings)
 
             if len(long_option_strings):
                 opts = abbreviations.get_many_abbreviations(long_option_strings)
-                if option.takes_args == '?': complete_long_with_optional_arg.add(opts, long_option_strings)
-                else:                        complete_long_with_required_arg.add(opts, long_option_strings)
+                if option.takes_args == '?':
+                    complete_long_with_optional_arg.add(opts, long_option_strings)
+                else:
+                    complete_long_with_required_arg.add(opts, long_option_strings)
 
             if len(old_option_strings):
                 opts = abbreviations.get_many_abbreviations(old_option_strings)
-                if option.takes_args == '?': complete_old_with_optional_arg.add(opts, old_option_strings)
-                else:                        complete_old_with_required_arg.add(opts, old_option_strings)
+                if option.takes_args == '?':
+                    complete_old_with_optional_arg.add(opts, old_option_strings)
+                else:
+                    complete_old_with_required_arg.add(opts, old_option_strings)
 
         funcs = [
             complete_options,

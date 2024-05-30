@@ -1,15 +1,25 @@
 #!/usr/bin/python3
 
-import sys, os, argparse, importlib, tempfile
+import os
+import sys
+import importlib
+import tempfile
+import argparse
+
 from argparse_shell_complete import zsh, bash, fish, commandline, argparse_mod
 from argparse_shell_complete import config as _config
 
+
 def parse_bool(s):
-    if s.lower() == 'true':  return True
-    if s.lower() == 'false': return False
+    if s.lower() == 'true':
+        return True
+    if s.lower() == 'false':
+        return False
     raise Exception("Not a bool: %r" % s)
 
-p = argparse.ArgumentParser('argparse-shell-complete', description='Generate shell completion files using pythons argparse module')
+
+p = argparse.ArgumentParser('argparse-shell-complete',
+                            description='Generate shell completion files using pythons argparse module')
 
 p.add_argument('shell', choices=('bash', 'fish', 'zsh'),
                help='The shell type for the completion script')
@@ -57,12 +67,15 @@ grp.add_argument('-u', '--uninstall-system-wide', default=False, action='store_t
 _argparse_shell_complete_argument_parser = p
 del p
 
+
 def close_output_streams():
     sys.stdout = sys.stderr = open(os.devnull, 'w')
+
 
 def restore_output_streams():
     sys.stdout = sys.__stdout__
     sys.stderr = sys.__stderr__
+
 
 def find_ArgumentParser(module):
     found_parsers = []
@@ -83,6 +96,7 @@ def find_ArgumentParser(module):
 
     return None
 
+
 def execute_file(file):
     ''' Import file using exec '''
 
@@ -93,12 +107,15 @@ def execute_file(file):
     with open(file, 'r') as fh:
         source = fh.read()
         compiled = compile(source, file, 'exec')
-        try:   exec(compiled, globals())
-        except SystemExit: pass
+        try:
+            exec(compiled, globals())
+        except SystemExit:
+            pass
 
     restore_output_streams()
 
     return __main__
+
 
 def import_file(file):
     ''' Import file using importlib '''
@@ -114,7 +131,7 @@ def import_file(file):
 
         directory, file = os.path.split(temp.name)
         module_name = file[:-3]
-        
+
     if not directory:
         directory = '.'
 
@@ -122,6 +139,7 @@ def import_file(file):
         sys.path.append(directory)
 
     return importlib.import_module(module_name)
+
 
 def generate(opts):
     if not os.path.exists(opts.program_file):
@@ -184,6 +202,7 @@ def generate(opts):
     else:
         print(r)
 
+
 if __name__ == '__main__':
     try:
         opts = _argparse_shell_complete_argument_parser.parse_args()
@@ -191,4 +210,3 @@ if __name__ == '__main__':
     except Exception as e:
         print('%s: %s' % (type(e).__name__, e), file=sys.stderr)
         sys.exit(1)
-

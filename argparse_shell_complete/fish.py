@@ -3,8 +3,6 @@
 import subprocess
 
 from . import shell, utils
-from . import commandline as _commandline
-from . import config as _config
 from . import helpers, fish_helpers
 from . import modeline
 
@@ -225,10 +223,17 @@ class FishCompletionGenerator:
             else:
                 r += ["-n %s" % self.conditions.add(conditions)]
 
-        for o in sorted(short_options): r += ['-s %s' % shell.escape(o.lstrip('-'))]
-        for o in sorted(long_options):  r += ['-l %s' % shell.escape(o.lstrip('-'))]
-        for o in sorted(old_options):   r += ['-o %s' % shell.escape(o.lstrip('-'))]
-        if description:                 r += ['-d %s' % shell.escape(description)]
+        for o in sorted(short_options):
+            r += ['-s %s' % shell.escape(o.lstrip('-'))]
+
+        for o in sorted(long_options):
+            r += ['-l %s' % shell.escape(o.lstrip('-'))]
+
+        for o in sorted(old_options):
+            r += ['-o %s' % shell.escape(o.lstrip('-'))]
+
+        if description:
+            r += ['-d %s' % shell.escape(description)]
 
         for s in choices:
             r += ['-a %s' % shell.escape(s)]
@@ -267,7 +272,7 @@ class FishCompletionGenerator:
             positional = None
 
         r = self.make_complete(
-            requires_argument   = (option.takes_args == True),
+            requires_argument   = (option.takes_args is True),
             description         = option.help,
             positional          = positional,
             positional_contains = self._get_positional_contains(option),
@@ -353,4 +358,3 @@ def generate_completion(commandline, program_name=None, config=None):
         output += [modeline.get_vim_modeline('fish')]
 
     return '\n'.join(output)
-

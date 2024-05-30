@@ -48,7 +48,7 @@ class GeneralAbbreviationGenerator():
 
             for length in range(len(word), self.min_abbreviated_length - 1, -1):
                 abbrev = word[0:length]
-                
+
                 can_abbreviate = True
                 for other_word in filter(lambda w: w != word, words):
                     if other_word.startswith(abbrev):
@@ -171,8 +171,8 @@ def is_worth_a_function(commandline):
         return True
 
     options = commandline.get_options()
-    options = list(filter(lambda o: '--help' not in o.option_strings and \
-                               '--version' not in o.option_strings, options))
+    options = list(filter(lambda o: '--help' not in o.option_strings and
+                                    '--version' not in o.option_strings, options))
     if len(options) > 0:
         return True
 

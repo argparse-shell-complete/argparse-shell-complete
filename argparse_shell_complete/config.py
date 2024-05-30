@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
-_is_bool = lambda obj: isinstance(obj, bool)
+def _is_bool(obj):
+    return isinstance(obj, bool)
 
 class Config:
     '''

@@ -1,13 +1,11 @@
 #!/usr/bin/python3
 
 from . import shell, utils
-from . import commandline as _commandline
-from . import config as _config
 from . import zsh_helpers, helpers
 from . import modeline
 
 def get_completions_file(program_name):
-    dir='/usr/share/zsh/site-functions'
+    dir = '/usr/share/zsh/site-functions'
     return '%s/_%s' % (dir, program_name)
 
 class ZshCompleter(shell.ShellCompleter):
@@ -226,7 +224,7 @@ class ZshCompletionGenerator():
 
         if self.subcommands:
             args.append(self.complete_subcommands(self.subcommands))
-            #args.append("'*::arg:->args'")
+            # args.append("'*::arg:->args'")
 
         if len(args):
             # TODO: add -s to _arguments

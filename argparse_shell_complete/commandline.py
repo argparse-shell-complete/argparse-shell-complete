@@ -8,7 +8,8 @@ from itertools import chain
 from . import shell
 from . import config as _config
 
-is_bool = lambda o: isinstance(o, bool)
+def is_bool(obj):
+    return isinstance(obj, bool)
 
 class ExtendedBool():
     TRUE    = True
@@ -381,7 +382,6 @@ class Option:
         '''
         return [o for o in self.option_strings if o.startswith('-') and not o.startswith('--') and len(o) > 2]
 
-
     def get_conflicting_options(self):
         '''
         Returns a list of conflicting options within the same mutually exclusive group.
@@ -471,22 +471,27 @@ class Option:
 
 class SubCommandsOption(Option):
     def __init__(self, parent, name, help):
-        # TODO
-        self.parent = parent
         self.subcommands = OrderedDict()
-        self.help  = ''
-        self.option_strings = OptionStrings([name])
-        self.complete = ('choices', []) # TODO
+        self.choices = OrderedDict()
+
+        super().__init__(
+            parent,
+            [name],
+            metavar='command',
+            help=help,
+            complete=['choices', self.choices],
+            takes_args=True,
+            multiple_option=ExtendedBool.FALSE)
 
     def add_commandline_object(self, commandline):
         commandline.parent = self.parent
         self.subcommands[commandline.prog] = commandline
-        self.complete[1].append(commandline.prog)
+        self.choices[commandline.prog] = commandline.help
 
     def add_commandline(self, name, help=''):
         commandline = CommandLine(name, help=help, parent=self.parent)
         self.subcommands[commandline.prog] = commandline
-        self.complete[1].append(commandline.prog)
+        self.choices[commandline.prog] = commandline.help
         return commandline
 
     def __eq__(self, other):
@@ -731,7 +736,7 @@ def ArgumentParser_to_CommandLine(parser, prog=None, description=None):
             )
 
         elif isinstance(action, argparse._StoreAction) or \
-             isinstance(action, argparse._ExtendAction)or \
+             isinstance(action, argparse._ExtendAction) or \
              isinstance(action, argparse._AppendAction):
 
             if action.choices and hasattr(action, 'completion'):

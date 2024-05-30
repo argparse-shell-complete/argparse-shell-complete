@@ -1,8 +1,11 @@
 #!/usr/bin/python3
 
-import sys, re, argparse, collections
+import re
+import sys
+import collections
 
 from . import commandline as _commandline
+from . import config as _config
 
 def make_identifier(string):
     '''
@@ -137,14 +140,8 @@ class ShellCompleter():
 
         return self.complete(ctxt, 'choices', signals)
 
-    def range(self, ctxt, _range):
-        # TODO!!!!!!
-        l = list(_range)
-
-        if len(l) > 32:
-            l = l[0:16] + ['...'] + l[-32:]
-
-        return self.complete('choices', l)
+    def range(self, ctxt, start, stop, step=1):
+        return self.complete('choices', list(range(start, stop, step)))
 
     def directory(self, ctxt, opts):
         return self.fallback(ctxt, 'directory', 'file', opts)
