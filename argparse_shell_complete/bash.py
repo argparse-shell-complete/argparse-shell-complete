@@ -1,10 +1,23 @@
 #!/usr/bin/python3
 
+import subprocess
+
 from . import shell, utils
 from . import commandline as _commandline
 from . import config as _config
 from . import bash_helpers
 from . import modeline
+
+def get_completions_file(program_name):
+    command = ['pkg-config', '--variable=completionsdir', 'bash-completion']
+    result = subprocess.run(command, capture_output=True, text=True)
+    if result.returncode == 0:
+        dir = result.stdout.strip()
+    else:
+        utils.warn('%s failed' % ' '.join(command))
+        dir = '/usr/share/bash-completion/completions'
+
+    return '%s/%s' % (dir, program_name)
 
 # =============================================================================
 # Completion code

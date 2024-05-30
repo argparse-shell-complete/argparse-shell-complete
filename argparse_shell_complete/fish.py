@@ -1,10 +1,23 @@
 #!/usr/bin/python3
 
+import subprocess
+
 from . import shell, utils
 from . import commandline as _commandline
 from . import config as _config
 from . import helpers, fish_helpers
 from . import modeline
+
+def get_completions_file(program_name):
+    command = ['pkg-config', '--variable=completionsdir', 'fish']
+    result = subprocess.run(command, capture_output=True, text=True)
+    if result.returncode == 0:
+        dir = result.stdout.strip()
+    else:
+        utils.warn('%s failed' % ' '.join(command))
+        dir = '/usr/share/fish/vendor_completions.d'
+
+    return '%s/%s.fish' % (dir, program_name)
 
 class FishCompletionBase():
     def get_args(self):
@@ -34,7 +47,7 @@ class FishCompleter(shell.ShellCompleter):
             code = 'printf "%s\\t%s\\n" \\\n'
             for item, description in choices.items():
                 code += '  %s %s \\\n' % (shell.escape(str(item)), shell.escape(str(description)))
-            code = code.rstrip('\\\n ')
+            code = code.rstrip(' \\\n')
 
             ctxt.helpers.add_function(helpers.FishFunction(funcname, code))
             ctxt.helpers.use(funcname)

@@ -42,7 +42,7 @@ Options
 **--abbreviate-options={True,False}**
 
 > Sets whether options can be abbreviated.
-> Note: abbreviated options are not supported by ZSH.
+> Note: abbreviated options are not supported by FISH and ZSH.
 
 **--multiple-options={True,False}**
 
@@ -59,6 +59,37 @@ Options
 **--include-file=FILE**
 
 > Include contents of FILE in output.
+
+**-o|--output=FILE**
+
+> Write output to destination file [default: stdout].
+
+**-i|--install-system-wide**
+
+> Write output to the system wide completions dir of shell.
+
+**-u|--uninstall-system-wide**
+
+> Uninstall the system wide completion file for program.
+
+Completions
+===========
+
+To install system wide completion files for argparse-shell-complete, execute the following:
+
+```
+sudo argparse-shell-complete -i bash "$(which argparse-shell-complete)"
+sudo argparse-shell-complete -i fash "$(which argparse-shell-complete)"
+sudo argparse-shell-complete -i zsh  "$(which argparse-shell-complete)"
+```
+
+If you want to uninstall the completion files, pass `-u` to argparse-shell-complete:
+
+```
+sudo argparse-shell-complete -u bash "$(which argparse-shell-complete)"
+sudo argparse-shell-complete -u fash "$(which argparse-shell-complete)"
+sudo argparse-shell-complete -u zsh  "$(which argparse-shell-complete)"
+```
 
 Questions or problems
 =====================

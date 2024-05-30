@@ -6,6 +6,10 @@ from . import config as _config
 from . import zsh_helpers, helpers
 from . import modeline
 
+def get_completions_file(program_name):
+    dir='/usr/share/zsh/site-functions'
+    return '%s/_%s' % (dir, program_name)
+
 class ZshCompleter(shell.ShellCompleter):
     def none(self, ctxt, *a):
         return "' '"

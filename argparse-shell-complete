@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 import sys, os, argparse, importlib, tempfile
-from argparse_shell_complete import zsh, bash, fish, commandline
+from argparse_shell_complete import zsh, bash, fish, commandline, argparse_mod
 from argparse_shell_complete import config as _config
 
 def parse_bool(s):
@@ -10,17 +10,47 @@ def parse_bool(s):
     raise Exception("Not a bool: %r" % s)
 
 p = argparse.ArgumentParser('argparse-shell-complete', description='Generate shell completion files using pythons argparse module')
-p.add_argument('shell', choices=('bash', 'fish', 'zsh'))
-p.add_argument('program_file')
-p.add_argument('--parser_variable', default=None, help='Specify parser variable')
-p.add_argument('-o', '--output',    default=None, help='Destination file [default: stdout]')
-p.add_argument('--program_name',    default=None, help='Program name')
-p.add_argument('--abbreviate-commands', default=False, type=parse_bool)
-p.add_argument('--abbreviate-options', default=False, type=parse_bool)
-p.add_argument('--multiple-options', default=False, type=parse_bool)
-p.add_argument('--inherit-options', default=False, type=parse_bool)
-p.add_argument('--vim-modeline', default=True, type=parse_bool)
-p.add_argument('--include-file', action='append', help='Include file in output')
+
+p.add_argument('shell', choices=('bash', 'fish', 'zsh'),
+               help='The shell type for the completion script')
+
+p.add_argument('program_file',
+               help='The file containing the command line definitions').complete('file')
+
+p.add_argument('--parser-variable', default=None,
+               help='Specify parser variable name')
+
+p.add_argument('--program-name', default=None,
+               help='Specify program name')
+
+p.add_argument('--abbreviate-commands', default=False, type=parse_bool,
+               help='Sets whether commands can be abbreviated')
+
+p.add_argument('--abbreviate-options', default=False, type=parse_bool,
+               help='Sets wether options can be abbreviate')
+
+p.add_argument('--multiple-options', default=False, type=parse_bool,
+               help='Sets whether options are suggested multiple times during completion')
+
+p.add_argument('--inherit-options', default=False, type=parse_bool,
+               help='Sets whether parent options are visible to subcommands')
+
+p.add_argument('--vim-modeline', default=True, type=parse_bool,
+               help='Sets whether a vim modeline comment shall be appended to the generated code')
+
+p.add_argument('--include-file', action='append',
+               help='Include file in output').complete('file')
+
+grp = p.add_mutually_exclusive_group()
+
+grp.add_argument('-o', '--output', default=None,
+                 help='Write output to destination file [default: stdout]')
+
+grp.add_argument('-i', '--install-system-wide', default=False, action='store_true',
+                 help='Write output to the system wide completions dir of shell')
+
+grp.add_argument('-u', '--uninstall-system-wide', default=False, action='store_true',
+                 help='Uninstall the system wide completion file for program')
 
 # We use an unique object name for avoinding name clashes when
 # importing/executing the foreign python script
@@ -94,6 +124,9 @@ def import_file(file):
     return importlib.import_module(file)
 
 def generate(opts):
+    if not os.path.exists(opts.program_file):
+        raise FileNotFoundError(opts.program_file)
+
     try:
         module = import_file(opts.program_file)
     except Exception as e:
@@ -129,18 +162,33 @@ def generate(opts):
         'zsh':  zsh.generate_completion
     }[opts.shell](cmdline, opts.program_name, config)
 
-    if opts.output is not None:
+    if opts.install_system_wide is True or opts.uninstall_system_wide is True:
+        file = {
+            'bash': bash.get_completions_file,
+            'fish': fish.get_completions_file,
+            'zsh':  zsh.get_completions_file,
+        }[opts.shell](opts.program_name)
+
+        if opts.install_system_wide:
+            print('Installing to %s' % file, file=sys.stderr)
+            with open(file, 'w') as fh:
+                fh.write(r)
+        else:
+            print('Removing %s' % file, file=sys.stderr)
+            os.remove(file)
+
+    elif opts.output is not None:
         with open(opts.output, 'w') as fh:
             fh.write(r)
+
     else:
         print(r)
 
-try:
-    opts = _argparse_shell_complete_argument_parser.parse_args()
-    generate(opts)
-except Exception as e:
-    print('Error:', e, file=sys.stderr)
-    print('Options:', opts, file=sys.stderr)
-    raise
-    sys.exit(1)
+if __name__ == '__main__':
+    try:
+        opts = _argparse_shell_complete_argument_parser.parse_args()
+        generate(opts)
+    except Exception as e:
+        print('%s: %s' % (type(e).__name__, e), file=sys.stderr)
+        sys.exit(1)
 
