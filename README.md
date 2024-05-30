@@ -79,7 +79,7 @@ To install system wide completion files for argparse-shell-complete, execute the
 
 ```
 sudo argparse-shell-complete -i bash "$(which argparse-shell-complete)"
-sudo argparse-shell-complete -i fash "$(which argparse-shell-complete)"
+sudo argparse-shell-complete -i fish "$(which argparse-shell-complete)"
 sudo argparse-shell-complete -i zsh  "$(which argparse-shell-complete)"
 ```
 
@@ -87,7 +87,7 @@ If you want to uninstall the completion files, pass `-u` to argparse-shell-compl
 
 ```
 sudo argparse-shell-complete -u bash "$(which argparse-shell-complete)"
-sudo argparse-shell-complete -u fash "$(which argparse-shell-complete)"
+sudo argparse-shell-complete -u fish "$(which argparse-shell-complete)"
 sudo argparse-shell-complete -u zsh  "$(which argparse-shell-complete)"
 ```
 
