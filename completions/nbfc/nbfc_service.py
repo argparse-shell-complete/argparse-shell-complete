@@ -21,6 +21,6 @@ argp.add_argument('-c', '--config-file', metavar='config',
 argp.add_argument('-s', '--state-file', metavar='state.json',
                   help='Write state to an alternative file (default /var/run/nbfc_service.state.json)').complete('file')
 
-argp.add_argument('-e', '--embedded-controller', metavar='EC', choices=['dummy','dev_port', 'ec_sys'],
+argp.add_argument('-e', '--embedded-controller', metavar='EC', choices=['dummy', 'dev_port', 'ec_sys', 'acpi_ec'],
                   help='Specify embedded controller to use')
 

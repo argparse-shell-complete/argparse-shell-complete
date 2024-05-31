@@ -46,7 +46,7 @@ agrp.add_argument('-s', '--service', action='store_true',
                   help='Show service status')
 
 agrp.add_argument('-f', '--fan', type=int, metavar='FAN INDEX',
-                  help='Show fan status')
+                  help='Show status of fan (zero based)')
 
 cmdp.add_argument('-w', '--watch',
                   help='Show status periodically', type=float, metavar='SECONDS')

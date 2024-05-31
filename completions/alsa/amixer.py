@@ -43,7 +43,7 @@ cmdp = subp.add_parser('info', help='Shows the information about a mixer device'
 # =============================================================================
 # Command 'scontrols'
 # =============================================================================
-cmdp = subp.add_parser('scontrols', help='Show all mxier simple controls')
+cmdp = subp.add_parser('scontrols', help='Show all mixer simple controls')
 
 # =============================================================================
 # Command 'scontents'
