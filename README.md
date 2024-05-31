@@ -97,7 +97,7 @@ sudo argparse-shell-complete -u zsh  "$(which argparse-shell-complete)"
 Examples
 ========
 
-See [completions](/argparse-shell-complete/argparse-shell-complete/tree/main/completions) for real world applications of argparse-shell-complete.
+See [completions](https://github.com/argparse-shell-complete/argparse-shell-complete/tree/main/completions) for real world applications of argparse-shell-complete.
 
 Questions or problems
 =====================
