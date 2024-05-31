@@ -2,8 +2,7 @@
 
 import argparse
 
-try:    from argparse_shell_complete import argparse_mod
-except: argparse.Action.complete = lambda s, *_: s
+from argparse_shell_complete import argparse_mod
 
 argp = argparse.ArgumentParser(prog='amixer', description='command-line mixer for ALSA soundcard driver')
 

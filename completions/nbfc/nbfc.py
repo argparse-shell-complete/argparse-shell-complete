@@ -2,8 +2,7 @@
 
 import argparse
 
-try:    from argparse_shell_complete import argparse_mod
-except: argparse.Action.complete = lambda s, *_: s
+from argparse_shell_complete import argparse_mod
 
 NBFC_CONFIGS_DIR = '/usr/share/nbfc/configs'
 
