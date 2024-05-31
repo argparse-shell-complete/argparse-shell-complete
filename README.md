@@ -1,14 +1,17 @@
 argparse-shell-complete
 =======================
 
-Generate shell completion files using pythons argparse module.
+Every program should have autocompletion in the shell to enhance user experience and productivity. argparse-shell-complete helps solve this task by generating robust and reliable autocompletion scripts using pythons argparse module.
 
-Status
-======
+**Key Features**:
+- **Generates Robust Scripts**: Ensures that the autocompletion scripts are reliable and efficient.
+- **Multi-Shell Support**: Works seamlessly with Bash, Fish, and Zsh, providing flexibility across different environments.
+- **Zero Dependencies**: No external dependencies are required, making the integration smooth and hassle-free.
+- **Configurable and Extendable**: The generated autocompletion scripts are highly configurable and can be easily extended to suit your specific needs.
+- **Standalone Scripts**: The generated scripts are standalone and do not depend on modified environments, unlike some alternatives like argcomplete.
+- **Easy to Use**: Simple and intuitive to set up, allowing you to quickly add autocompletion functionality to your programs.
 
-This is a very new project.
-
-Works for: bash, fish, zsh.
+With argparse-shell-complete, adding autocompletion to your programs has never been easier. Try it out and see the difference it makes in your command-line applications!
 
 Installation
 ============
@@ -24,7 +27,7 @@ Installation
   ```
   git clone https://github.com/argparse-shell-complete/argparse-shell-complete
   cd argparse-shell-complete
-  sudo ./setup.py install
+  sudo python3 -m pip install .
   ```
 
 Synopsis
@@ -52,7 +55,7 @@ Options
 
 > Sets whether parent options are visible to subcommands.
 
-**-vim-modeline={True,False}**
+**--vim-modeline={True,False}**
 
 > Sets whether a vim modeline comment shall be appended to the generated code.
 
@@ -90,6 +93,11 @@ sudo argparse-shell-complete -u bash "$(which argparse-shell-complete)"
 sudo argparse-shell-complete -u fish "$(which argparse-shell-complete)"
 sudo argparse-shell-complete -u zsh  "$(which argparse-shell-complete)"
 ```
+
+Examples
+========
+
+See [completions](/argparse-shell-complete/argparse-shell-complete/tree/main/completions) for real world applications of argparse-shell-complete.
 
 Questions or problems
 =====================
