@@ -75,8 +75,8 @@ Options
 
 > Uninstall the system wide completion file for program.
 
-Completions
-===========
+Completions for argparse-shell-complete
+=======================================
 
 To install system wide completion files for argparse-shell-complete, execute the following:
 
@@ -102,4 +102,4 @@ See [completions](https://github.com/argparse-shell-complete/argparse-shell-comp
 Questions or problems
 =====================
 
-Don't hesitate to open an issue on GitHub.
+Don't hesitate to open an issue on [GitHub](https://github.com/argparse-shell-complete/argparse-shell-complete/issues).
