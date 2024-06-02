@@ -23,6 +23,16 @@ Installation
   makepkg -c && sudo pacman -U python-argparse-shell-complete*.pkg.*
   ```
 
+- Using Debian:
+  ```
+  # Ensure Python 3 is installed or install it with:
+  apt install python3
+
+  git clone https://github.com/argparse-shell-complete/packages
+  cd packages
+  sudo dpkg -i $(ls|grep -F .deb|tail -1)
+  ```
+
 - For other Linux distributions:
   ```
   git clone https://github.com/argparse-shell-complete/argparse-shell-complete
