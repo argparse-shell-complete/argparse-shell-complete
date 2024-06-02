@@ -37,7 +37,7 @@ Installation
   ```
   git clone https://github.com/argparse-shell-complete/argparse-shell-complete
   cd argparse-shell-complete
-  sudo python3 -m pip install .
+  python3 -m pip install .
   ```
 
 Synopsis
