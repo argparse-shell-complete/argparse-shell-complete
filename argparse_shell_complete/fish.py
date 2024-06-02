@@ -8,10 +8,13 @@ from . import modeline
 
 def get_completions_file(program_name):
     command = ['pkg-config', '--variable=completionsdir', 'fish']
-    result = subprocess.run(command, capture_output=True, text=True)
-    if result.returncode == 0:
+    try:
+        # throws FileNotFoundError if command is not available
+        result = subprocess.run(command, capture_output=True, text=True)
+        if result.returncode != 0:
+            raise Exception('returncode != 0')
         dir = result.stdout.strip()
-    else:
+    except:
         utils.warn('%s failed' % ' '.join(command))
         dir = '/usr/share/fish/vendor_completions.d'
 
