@@ -3,6 +3,7 @@
 from . import shell, utils
 from . import zsh_helpers, helpers
 from . import modeline
+from . import generation_notice
 
 def get_completions_file(program_name):
     dir = '/usr/share/zsh/site-functions'
@@ -243,6 +244,8 @@ def generate_completion(commandline, program_name=None, config=None):
     functions = result.result
 
     output = ['#compdef %s' % functions[0].commandline.prog]
+
+    output.append(generation_notice.GENERATION_NOTICE)
 
     output.extend(result.include_files_content)
 

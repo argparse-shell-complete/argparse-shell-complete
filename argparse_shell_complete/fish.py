@@ -5,6 +5,7 @@ import subprocess
 from . import shell, utils
 from . import helpers, fish_helpers
 from . import modeline
+from . import generation_notice
 
 def get_completions_file(program_name):
     command = ['pkg-config', '--variable=completionsdir', 'fish']
@@ -337,6 +338,9 @@ def generate_completion(commandline, program_name=None, config=None):
     result.ctxt.helpers.use('fish_helper', True)
 
     output = []
+
+    output.append(generation_notice.GENERATION_NOTICE)
+    output.append('')
 
     for code in result.include_files_content:
         output.append(code)

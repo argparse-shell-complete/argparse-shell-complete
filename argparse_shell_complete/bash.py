@@ -5,6 +5,7 @@ import subprocess
 from . import shell, utils
 from . import bash_helpers
 from . import modeline
+from . import generation_notice
 
 def get_completions_file(program_name):
     command = ['pkg-config', '--variable=completionsdir', 'bash-completion']
@@ -617,7 +618,8 @@ def generate_completion(commandline, program_name=None, config=None):
     result = shell.CompletionGenerator(BashCompletionGenerator, bash_helpers.BASH_Helpers, commandline, program_name, config)
     commandline = result.result[0].commandline
 
-    output  = result.include_files_content
+    output  = [generation_notice.GENERATION_NOTICE]
+    output += result.include_files_content
     output += result.ctxt.helpers.get_code()
     output += [r.result for r in result.result]
     output += ['complete -F %s %s' % (shell.make_completion_funcname(commandline), commandline.prog)]
