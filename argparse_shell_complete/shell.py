@@ -26,7 +26,7 @@ def make_identifier(string):
     string = string.replace('-', '_')
     string = re.sub('[^a-zA-Z0-9_]', '', string)
     string = re.sub('_+', '_', string)
-    if string[0] in '0123456789':
+    if string and string[0] in '0123456789':
         return '_' + string
     return string
 
@@ -88,6 +88,14 @@ def make_completion_funcname(cmdline, prefix='_', suffix=''):
     )
 
     return r
+
+def make_completion_funcname_for_context(ctxt):
+    commandlines = ctxt.commandline.get_parents(include_self=True)
+    del commandlines[0]
+
+    funcname = make_identifier('_'.join(p.prog for p in commandlines))
+
+    return '%s_%s' % (funcname, ctxt.option.option_strings[0])
 
 class ShellCompleter():
     # TODO: this is actually a mess

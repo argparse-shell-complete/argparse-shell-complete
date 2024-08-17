@@ -16,7 +16,7 @@ class ZshCompleter(shell.ShellCompleter):
     def choices(self, ctxt, choices):
         if hasattr(choices, 'items'):
             # TODO: escape value and description
-            funcname = '%s_%s' % (shell.make_completion_funcname(ctxt.commandline), ctxt.option.option_strings[0])
+            funcname = shell.make_completion_funcname_for_context(ctxt)
             code  = 'local -a DESCRIBE=(\n'
             for item, description in choices.items():
                 code += '  %s:%s\n' % (shell.escape(escape_colon(str(item))), shell.escape(str(description)))
@@ -24,7 +24,7 @@ class ZshCompleter(shell.ShellCompleter):
             code += '_describe -- %s DESCRIBE' % shell.escape(ctxt.option.option_strings[0])
 
             ctxt.helpers.add_function(helpers.ShellFunction(funcname, code))
-            funcname = ctxt.helpers.use(funcname)
+            funcname = ctxt.helpers.use_function(funcname)
             return funcname
         else:
             return shell.escape("(%s)" % (' '.join(shell.escape(str(c)) for c in choices)))
@@ -81,7 +81,7 @@ class ZshCompleter(shell.ShellCompleter):
         return '_vars'
 
     def exec(self, ctxt, command):
-        funcname = ctxt.helpers.use('exec', True)
+        funcname = ctxt.helpers.use_function('exec')
         return shell.escape('{%s %s}' % (funcname, shell.escape(command)))
 
 def escape_colon(s):
@@ -194,7 +194,7 @@ class ZshCompletionGenerator():
             else:
                 abbrevs = utils.DummyAbbreviationGenerator()
 
-            get_positional_func = self.ctxt.helpers.use('get_positional', True)
+            get_positional_func = self.ctxt.helpers.use_function('get_positional')
             r += '  # We have to check for subcommands here, because _arguments modifies $words\n'
             r += '  local opts="%s"\n' % self._get_option_strings()
             r += '  case "$(%s "$opts" %d "${words[@]}")" in\n' % (get_positional_func, self.subcommands.get_positional_num())
@@ -249,7 +249,7 @@ def generate_completion(commandline, program_name=None, config=None):
 
     output.extend(result.include_files_content)
 
-    for code in result.ctxt.helpers.get_code():
+    for code in result.ctxt.helpers.get_used_functions_code():
         output.append(code)
 
     output += [r.result for r in functions]

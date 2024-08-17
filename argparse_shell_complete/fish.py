@@ -45,14 +45,14 @@ class FishCompleter(shell.ShellCompleter):
 
     def choices(self, ctxt, choices):
         if hasattr(choices, 'items'):
-            funcname = '%s_%s' % (shell.make_completion_funcname(ctxt.commandline), ctxt.option.option_strings[0])
+            funcname = shell.make_completion_funcname_for_context(ctxt)
             code = 'printf "%s\\t%s\\n" \\\n'
             for item, description in choices.items():
                 code += '  %s %s \\\n' % (shell.escape(str(item)), shell.escape(str(description)))
             code = code.rstrip(' \\\n')
 
             ctxt.helpers.add_function(helpers.FishFunction(funcname, code))
-            ctxt.helpers.use(funcname)
+            funcname = ctxt.helpers.use_function(funcname)
             return FishCompletionCommand(funcname)
 
         return FishCompletionFromArgs(['-f', '-a', shell.escape(' '.join(shell.escape(str(c)) for c in choices))])
@@ -69,7 +69,7 @@ class FishCompleter(shell.ShellCompleter):
                 raise Exception('Unknown option: %s' % name)
 
         if directory:
-            funcname = ctxt.helpers.use('fish_complete_filedir', True)
+            funcname = ctxt.helpers.use_function('fish_complete_filedir')
             return FishCompletionCommand('%s -D -C %s' % (funcname, shell.escape(directory)))
         return FishCompletionCommand("__fish_complete_directories")
 
@@ -82,7 +82,7 @@ class FishCompleter(shell.ShellCompleter):
                 raise Exception('Unknown option: %s' % name)
 
         if directory:
-            funcname = ctxt.helpers.use('fish_complete_filedir', True)
+            funcname = ctxt.helpers.use_function('fish_complete_filedir')
             return FishCompletionCommand('%s -C %s' % (funcname, shell.escape(directory)))
         return FishCompletionFromArgs(['-F'])
 
@@ -119,9 +119,6 @@ class FishCompleter(shell.ShellCompleter):
 # =============================================================================
 # Helper function for creating a `complete` command in fish
 # =============================================================================
-
-def join_escaped(list_, delimiter=' '):
-    return delimiter.join(shell.escape(word) for word in list_)
 
 class Conditions:
     def __init__(self):
@@ -335,7 +332,7 @@ class FishCompletionGenerator:
 
 def generate_completion(commandline, program_name=None, config=None):
     result = shell.CompletionGenerator(FishCompletionGenerator, fish_helpers.FISH_Helpers, commandline, program_name, config)
-    result.ctxt.helpers.use('fish_helper', True)
+    result.ctxt.helpers.use_function('fish_helper')
 
     output = []
 
@@ -346,12 +343,12 @@ def generate_completion(commandline, program_name=None, config=None):
         output.append(code)
         output.append('')
 
-    for code in result.ctxt.helpers.get_code():
+    for code in result.ctxt.helpers.get_used_functions_code():
         output.append(code)
         output.append('')
 
     output.append('set -l prog "%s"'   % result.result[0].commandline.prog)
-    output.append('set -l helper "%s"' % result.ctxt.helpers.use('fish_helper', True))
+    output.append('set -l helper "%s"' % result.ctxt.helpers.use_function('fish_helper'))
 
     for generator in result.result:
         output.append('')

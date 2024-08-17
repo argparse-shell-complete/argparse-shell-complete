@@ -73,7 +73,7 @@ class Compgen_W(BashCompletionBase):
         self.values = values
 
     def get_command(self, append=False):
-        compgen_funcname = self.ctxt.helpers.use('compgen_w_replacement', True)
+        compgen_funcname = self.ctxt.helpers.use_function('compgen_w_replacement')
         return ('%s %s-- "$cur" %s' % (
             compgen_funcname,
             ('-a ' if append else ''),
@@ -157,7 +157,7 @@ class BashCompleter(shell.ShellCompleter):
         return BashCompletionCompgen(ctxt, '-A variable')
 
     def exec(self, ctxt, command):
-        funcname = ctxt.helpers.use('exec', True)
+        funcname = ctxt.helpers.use_function('exec')
         return BashCompletionCommand(ctxt, '%s %s' % (funcname, shell.escape(command)))
 
 # =============================================================================
@@ -347,7 +347,7 @@ done'''
                 option_guard = ''
 
             r += '  %sPOSSIBLE_OPTIONS+=(%s)\n' % (option_guard, ' '.join(shell.escape(o) for o in option.option_strings))
-        r += '  %s -a -- "$cur" "${POSSIBLE_OPTIONS[@]}"\n' % self.ctxt.helpers.use('compgen_w_replacement', True)
+        r += '  %s -a -- "$cur" "${POSSIBLE_OPTIONS[@]}"\n' % self.ctxt.helpers.use_function('compgen_w_replacement')
         r += 'fi'
         return r
 
@@ -620,7 +620,7 @@ def generate_completion(commandline, program_name=None, config=None):
 
     output  = [generation_notice.GENERATION_NOTICE]
     output += result.include_files_content
-    output += result.ctxt.helpers.get_code()
+    output += result.ctxt.helpers.get_used_functions_code()
     output += [r.result for r in result.result]
     output += ['complete -F %s %s' % (shell.make_completion_funcname(commandline), commandline.prog)]
     if config.vim_modeline:

@@ -2,12 +2,16 @@
 
 from . import utils
 
-class ShellFunction():
+class FunctionBase():
     def __init__(self, funcname, code):
         self.funcname = funcname
         self.code = code.strip()
 
-    def get(self, funcname=None):
+    def get_code(self):
+        raise NotImplementedError
+
+class ShellFunction(FunctionBase):
+    def get_code(self, funcname=None):
         if funcname is None:
             funcname = self.funcname
 
@@ -16,17 +20,13 @@ class ShellFunction():
         r += '}'
         return r
 
-class FishFunction():
-    def __init__(self, funcname, code):
-        self.funcname = funcname
-        self.code = code.strip()
-
-    def get(self, funcname=None):
+class FishFunction(FunctionBase):
+    def get_code(self, funcname=None):
         if funcname is None:
             funcname = self.funcname
 
         r  = 'function %s\n' % funcname
-        r += '%s\n'     % utils.indent(self.code, 2).rstrip()
+        r += '%s\n'          % utils.indent(self.code, 2).rstrip()
         r += 'end'
         return r
 
@@ -34,34 +34,33 @@ class GeneralHelpers():
     def __init__(self, function_prefix):
         self.function_prefix = function_prefix
         self.functions = dict()
-        self.used_functions = dict()
+        self.used_functions = list()
+
+    def get_real_function_name(self, function_name):
+        return '_%s_%s' % (self.function_prefix, function_name)
 
     def add_function(self, function):
+        assert isinstance(function, FunctionBase), "GeneralHelpers.add_function: function: expected FunctionBase, got %r" % function
         self.functions[function.funcname] = function
 
-    def use(self, function_name, prefix=False):
+    def use_function(self, function_name):
         if function_name not in self.functions:
             raise KeyError('No such function: %r' % function_name)
 
         # Code deduplication. If we saw a function with the same code,
         # return its funcname.
         # (Currently only used for zsh completion generator)
-        for function in self.used_functions.keys():
+        for function in self.used_functions:
             if self.functions[function_name].code == self.functions[function].code:
-                return self.used_functions[function]
+                return self.get_real_function_name(function)
 
-        new_function_name = function_name
-        if prefix == True:
-            new_function_name = '_%s_%s' % (self.function_prefix, function_name)
+        if function_name not in self.used_functions:
+            self.used_functions.append(function_name)
 
-        if function_name in self.used_functions:
-            return self.used_functions[function_name]
+        return self.get_real_function_name(function_name)
 
-        self.used_functions[function_name] = new_function_name
-        return new_function_name
-
-    def get_code(self):
+    def get_used_functions_code(self):
         r = []
-        for funcname, real_funcname in self.used_functions.items():
-            r.append(self.functions[funcname].get(real_funcname))
+        for funcname in self.used_functions:
+            r.append(self.functions[funcname].get_code(self.get_real_function_name(funcname)))
         return r
