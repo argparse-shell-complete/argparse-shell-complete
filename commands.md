@@ -131,7 +131,7 @@ argp.add_argument('--process').complete('process')
  ~ > foo --process=s<TAB>
 scsi_eh_0         scsi_eh_1       scsi_eh_2      scsi_eh_3  scsi_eh_4
 scsi_eh_5         sh              sudo           syndaemon  systemd
-systemd-journald  systemd-logind  systemd-udevd        
+systemd-journald  systemd-logind  systemd-udevd
 ```
 
 **pid()**
@@ -169,9 +169,9 @@ argp = argparse.ArgumentParser('foo')
 argp.add_argument('--user').complete('user')
 
  ~ > foo --user=<TAB>
-avahi                   bin                     braph                 
-colord                  daemon                  dbus                  
-dhcpcd                  ftp                     git    
+avahi                   bin                     braph
+colord                  daemon                  dbus
+dhcpcd                  ftp                     git
 [...]
 ```
 
@@ -184,11 +184,11 @@ argp = argparse.ArgumentParser('foo')
 argp.add_argument('--group').complete('group')
 
  ~ > foo --group=<TAB>
-adm                     audio                   avahi                 
-bin                     braph                   colord                
-daemon                  dbus                    dhcpcd                
-disk                    floppy                  ftp                   
-games                   git                     groups                
+adm                     audio                   avahi
+bin                     braph                   colord
+daemon                  dbus                    dhcpcd
+disk                    floppy                  ftp
+games                   git                     groups
 [...]
 ```
 
