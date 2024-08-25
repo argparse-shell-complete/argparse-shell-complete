@@ -190,7 +190,8 @@ class FishCompletionGenerator:
           requires_argument=False,    # Option requires an argument
           no_files=False,             # Don't use file completion
           choices=[],                 # Add those words for completion
-          flags=set()                 # Add those flags (without leading dash)
+          flags=set(),                # Add those flags (without leading dash)
+          when=None
         ):
 
         r = []
@@ -214,6 +215,10 @@ class FishCompletionGenerator:
 
         if positional is not None:
             guard = "$helper '$options' num_of_positionals -eq %d" % (positional - 1)
+            conditions += [guard]
+
+        if when is not None:
+            guard = "$helper '$options' %s" % when
             conditions += [guard]
 
         if len(conditions):
@@ -281,7 +286,8 @@ class FishCompletionGenerator:
             long_options        = option.get_long_option_strings(),
             old_options         = option.get_old_option_strings(),
             conflicting_options = conflicting_options,
-            flags               = flags
+            flags               = flags,
+            when                = option.when
         )
 
         r = ('%s %s' % (r, ' '.join(completion_args))).rstrip()
@@ -301,7 +307,8 @@ class FishCompletionGenerator:
             description         = option.help,
             positional_contains = self._get_positional_contains(option),
             positional          = option.get_positional_num(),
-            flags               = flags
+            flags               = flags,
+            when                = option.when
         )
 
         r = ('%s %s' % (r, ' '.join(completion_args))).rstrip()

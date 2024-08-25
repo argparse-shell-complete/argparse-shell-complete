@@ -96,6 +96,7 @@ set -e argv[1]
 
 set -l positionals
 set -l having_options
+set -l option_values
 
 set -l cmdline (commandline -poc)
 set -l cmdline_count (count $cmdline)
@@ -117,15 +118,18 @@ while test $argi -le $cmdline_count
       for option in $long_opts_with_arg $long_opts_without_arg $long_opts_with_optional_arg
         if string match -q -- "$option=*" $arg
           set -a having_options $option
+          set -a option_values (string replace -- "$option=" "" $arg)
           break
         else if string match -q -- $option $arg
           if contains -- $option $long_opts_with_arg
             if $have_trailing_arg
               set -a having_options $option
+              set -a option_values $cmdline[(math $argi + 1)]
               set argi (math $argi + 1)
             end
           else
             set -a having_options $option
+            set -a option_values ""
           end
           break
         end
@@ -136,16 +140,19 @@ while test $argi -le $cmdline_count
       for option in $old_opts_with_arg $old_opts_without_arg $old_opts_with_optional_arg
         if string match -q -- "$option=*" $arg
           set -a having_options $option
+          set -a option_values (string replace -- "$option=" "" $arg)
           set have_match true
           break
         else if string match -q -- $option $arg
           if contains -- $option $old_opts_with_arg
             if $have_trailing_arg
               set -a having_options $option
+              set -a option_values $cmdline[(math $argi + 1)]
               set argi (math $argi + 1)
             end
           else
             set -a having_options $option
+            set -a option_values ""
           end
 
           set have_match true
@@ -168,9 +175,11 @@ while test $argi -le $cmdline_count
               if contains -- $option $short_opts_with_arg
                 if $have_trailing_chars
                   set -a having_options $option
+                  set -a option_values (string sub -s (math $i + 1) -- $arg)
                   set is_end true
                 else if $have_trailing_arg
                   set -a having_options $option
+                  set -a option_values $cmdline[(math $argi + 1)]
                   set argi (math $argi + 1)
                   set is_end true
                 end
@@ -178,10 +187,14 @@ while test $argi -le $cmdline_count
                 set -a having_options $option
 
                 if $have_trailing_chars
+                  set -a option_values (string sub -s (math $i + 1) -- $arg)
                   set is_end true
+                else
+                  set -a option_values ""
                 end
               else
                 set -a having_options $option
+                set -a option_values ""
               end
 
               break
@@ -240,6 +253,39 @@ switch $cmd
       echo "$func: num_of_positionals: $argv[1]: missing operand" >&2
       return 1
     end
+  case 'option_is'
+    set -l options
+    set -l values
+    set -l have_eof false
+    for arg in $argv
+      if $have_eof
+        set -a values $arg
+      else if string match -q -- -- $arg
+        set have_eof true
+      else
+        set -a options $arg
+      end
+    end
+
+    if test (count $values) -eq 0
+      echo "$func: missing values" >&2
+      return 1
+    end
+
+    set -l i (count $having_options)
+    while test $i -ge 1
+      set -l option $having_options[$i]
+
+      if contains -- $option $options
+        if contains -- $option_values[$i] $values
+          return 0
+        end
+      end
+
+      set i (math $i - 1)
+    end
+
+    return 1
   case '*'
     echo "$func: argv[2]: invalid command" >&2
     return 1

@@ -125,7 +125,8 @@ class CommandLine():
             help='',
             complete=None,
             takes_args=True,
-            multiple_option=ExtendedBool.INHERIT):
+            multiple_option=ExtendedBool.INHERIT,
+            when=None):
         '''
         Adds a new option or positional argument to the command line.
 
@@ -141,7 +142,7 @@ class CommandLine():
             Option: The newly added option object.
         '''
 
-        option = Option(self, option_strings, metavar=metavar, help=help, complete=complete, takes_args=takes_args, multiple_option=multiple_option)
+        option = Option(self, option_strings, metavar=metavar, help=help, complete=complete, takes_args=takes_args, multiple_option=multiple_option, when=when)
         if option.option_strings.is_option():
             self.options.append(option)
         else:
@@ -289,7 +290,8 @@ class CommandLine():
                 help = option.help,
                 complete = option.complete,
                 takes_args = option.takes_args,
-                multiple_option = option.multiple_option
+                multiple_option = option.multiple_option,
+                when = option.when
             )
 
             if option.group is not None:
@@ -332,7 +334,8 @@ class Option:
             complete=None,
             exclusive_group=None,
             takes_args=True,
-            multiple_option=ExtendedBool.INHERIT):
+            multiple_option=ExtendedBool.INHERIT,
+            when=None):
         self.parent = parent
         self.option_strings = OptionStrings(option_strings)
         self.metavar = metavar
@@ -340,6 +343,7 @@ class Option:
         self.group = exclusive_group
         self.takes_args = takes_args
         self.multiple_option = multiple_option
+        self.when = when
 
         if complete:
             self.complete = complete
@@ -570,7 +574,8 @@ def JSON_To_Commandline(json):
                 json_option['help'],
                 json_option['complete'],
                 json_option['takes_args'],
-                json_option['multiple_option'])
+                json_option['multiple_option'],
+                json_option['when'])
             if json_option['group'] is not None:
                 groups[json_option['group']].append(o)
 
@@ -616,6 +621,7 @@ def CommandLine_To_JSON(commandline, config=None):
             option_json['takes_args']      = option.takes_args
             option_json['multiple_option'] = option.multiple_option
             option_json['complete']        = option.complete
+            option_json['when']            = option.when
 
             if option.group is None:
                 option_json['group'] = None
@@ -732,7 +738,8 @@ def ArgumentParser_to_CommandLine(parser, prog=None, description=None):
                 complete=None,
                 help=action.help,
                 takes_args=False,
-                multiple_option=get_multiple_option(action)
+                multiple_option=get_multiple_option(action),
+                when=getattr(action, 'condition', None)
             )
 
         elif isinstance(action, argparse._StoreAction) or \
@@ -761,7 +768,8 @@ def ArgumentParser_to_CommandLine(parser, prog=None, description=None):
                 complete=complete,
                 help=action.help,
                 takes_args=get_takes_args(action),
-                multiple_option=get_multiple_option(action)
+                multiple_option=get_multiple_option(action),
+                when=getattr(action, 'condition', None)
             )
 
         elif isinstance(action, argparse.BooleanOptionalAction):

@@ -6,6 +6,7 @@ from . import shell, utils
 from . import bash_helpers
 from . import modeline
 from . import generation_notice
+from . import when
 
 def get_completions_file(program_name):
     command = ['pkg-config', '--variable=completionsdir', 'bash-completion']
@@ -112,7 +113,11 @@ class BashCompleter(shell.ShellCompleter):
                 raise Exception('Unknown option: %s' % name)
 
         if directory:
-            return BashCompletionCommand(ctxt, 'cd %s\nfiledir -d\ncd -' % shell.escape(directory))
+            cmd =  'pushd %s &>/dev/null && {\n'
+            cmd += '  _filedir -d\n'
+            cmd += '  popd &>/dev/null\n'
+            cmd += '}'
+            return BashCompletionCommand(ctxt, cmd % shell.escape(directory))
         else:
             return BashCompletionCommand(ctxt, '_filedir -d')
 
@@ -125,7 +130,11 @@ class BashCompleter(shell.ShellCompleter):
                 raise Exception('Unknown option: %s' % name)
 
         if directory:
-            return BashCompletionCommand(ctxt, 'cd %s\nfiledir\ncd -' % shell.escape(directory))
+            cmd =  'pushd %s &>/dev/null && {\n'
+            cmd += '  _filedir\n'
+            cmd += '  popd &>/dev/null\n'
+            cmd += '}'
+            return BashCompletionCommand(ctxt, cmd % shell.escape(directory))
         else:
             return BashCompletionCommand(ctxt, '_filedir')
 
@@ -177,18 +186,18 @@ def make_switch_case_pattern(option_strings):
 
     return '|'.join(r)
 
-def make_option_variable_name(option):
+def make_option_variable_name(option, prefix=''):
     long_options = option.get_long_option_strings()
     if long_options:
-        return shell.make_identifier('HAVE_%s' % long_options[0].lstrip('-'))
+        return prefix + shell.make_identifier(long_options[0].lstrip('-'))
 
     old_options = option.get_old_option_strings()
     if old_options:
-        return shell.make_identifier('HAVE_%s' % old_options[0].lstrip('-'))
+        return prefix + shell.make_identifier(old_options[0].lstrip('-'))
 
     short_options = option.get_short_option_strings()
     if short_options:
-        return 'HAVE_%s' % short_options[0][1]
+        return prefix + ('%s' % short_options[0][1])
 
     assert False, "make_option_variable_name: Should not be reached"
 
@@ -228,7 +237,13 @@ class BashCompletionGenerator():
         else:
             abbreviations = utils.DummyAbbreviationGenerator()
 
-        local = ' '.join('%s=0' % make_option_variable_name(o) for o in options)
+        local = ' '.join(
+            '%s=0 %s=\'\'' % (
+                make_option_variable_name(o, prefix='HAVE_'),
+                make_option_variable_name(o, prefix='VALUE_')
+            )
+            for o in options
+        )
 
         case_long_options = []
         case_short_options = []
@@ -240,36 +255,47 @@ class BashCompletionGenerator():
 
             if long_options:
                 if option.takes_args == '?':
-                    r  = '%s);&\n'  % get_long_options_case_without_arg(long_options)
-                    r += '%s)\n'    % get_long_options_case_with_arg(long_options)
-                    r += '  %s=1;;' % make_option_variable_name(option)
+                    r  = '%s)\n'      % get_long_options_case_without_arg(long_options)
+                    r += '  %s=1;;\n' % make_option_variable_name(option, prefix='HAVE_')
+                    r += '%s)\n'      % get_long_options_case_with_arg(long_options)
+                    r += '  %s=1\n'   % make_option_variable_name(option, prefix='HAVE_')
+                    r += '  %s="${arg#*=}";;' % make_option_variable_name(option, prefix='VALUE_')
                     case_long_options.append(r)
                 elif option.takes_args:
-                    r  = '%s)\n'    % get_long_options_case_without_arg(long_options)
-                    r += '  (( ++argi ));&\n'
-                    r += '%s)\n'    % get_long_options_case_with_arg(long_options)
-                    r += '  %s=1;;' % make_option_variable_name(option)
+                    r  = '%s)\n'      % get_long_options_case_without_arg(long_options)
+                    r += '  %s=1\n'   % make_option_variable_name(option, prefix='HAVE_')
+                    r += '  %s="${words[$((++argi))]}";;\n' % make_option_variable_name(option, prefix='VALUE_')
+                    r += '%s)\n'      % get_long_options_case_with_arg(long_options)
+                    r += '  %s=1\n'   % make_option_variable_name(option, prefix='HAVE_')
+                    r += '  %s="${arg#*=}";;' % make_option_variable_name(option, prefix='VALUE_')
                     case_long_options.append(r)
                 else:
                     r  = '%s)\n' % get_long_options_case_without_arg(long_options)
-                    r += '  %s=1;;' % make_option_variable_name(option)
+                    r += '  %s=1;;' % make_option_variable_name(option, prefix='HAVE_')
                     case_long_options.append(r)
 
             if short_options:
                 if option.takes_args == '?':
                     r  = '%s)\n'    % get_short_options_case(short_options)
-                    r += '  %s=1\n' % make_option_variable_name(option)
+                    r += '  %s=1\n' % make_option_variable_name(option, prefix='HAVE_')
+                    r += '  if $has_trailing_chars; then\n'
+                    r += '    %s="${arg:$((c + 1))}"\n' % make_option_variable_name(option, 'VALUE_')
+                    r += '  fi\n'
                     r += '  break;;'
                     case_short_options.append(r)
                 elif option.takes_args:
                     r  = '%s)\n'    % get_short_options_case(short_options)
-                    r += '  %s=1\n' % make_option_variable_name(option)
-                    r += '  $has_trailing_chars || (( ++argi ))\n'
+                    r += '  %s=1\n' % make_option_variable_name(option, prefix='HAVE_')
+                    r += '  if $has_trailing_chars; then\n'
+                    r += '    %s="${arg:$((c + 1))}"\n' % make_option_variable_name(option, 'VALUE_')
+                    r += '  else\n'
+                    r += '    %s="${words[$((++argi))]}"\n' % make_option_variable_name(option, 'VALUE_')
+                    r += '  fi\n'
                     r += '  break;;'
                     case_short_options.append(r)
                 else:
                     r  = '%s)\n'    % get_short_options_case(short_options)
-                    r += '  %s=1;;' % make_option_variable_name(option)
+                    r += '  %s=1;;' % make_option_variable_name(option, prefix='HAVE_')
                     case_short_options.append(r)
 
         s = '''\
@@ -329,6 +355,63 @@ done'''
 
         return s
 
+    def _find_options(self, option_strings):
+        result = []
+
+        for option_string in option_strings:
+            found = False
+            for option in self.options:
+                if option_string in option.option_strings:
+                    if option not in result:
+                        result.append(option)
+                    found = True
+                    break
+            if not found:
+                raise Exception('Option %r not found' % option_string)
+
+        return result
+
+    def _generate_when_conditions(self, when_):
+        parsed = when.parse_when(when_)
+
+        if isinstance(parsed, when.OptionIs):
+            conditions = []
+
+            for o in self._find_options(parsed.options):
+                have_option = '(( %s ))' % make_option_variable_name(o, prefix='HAVE_')
+                value_equals = []
+                for value in parsed.values:
+                    value_equals.append('[[ "$%s" == %s ]]' % (
+                        make_option_variable_name(o, prefix='VALUE_'),
+                        shell.escape(value)
+                    ))
+
+                if len(value_equals) == 1:
+                    cond = '{ %s && %s }' % (have_option, value_equals)
+                else:
+                    cond = '{ %s && { %s } }' % (have_option, ' || '.join(value_equals))
+
+                conditions.append(cond)
+
+            if len(conditions) == 1:
+                return conditions[0]
+            else:
+                return '{ %s }' % ' || '.join(conditions)
+
+        elif isinstance(parsed, when.HasOption):
+            conditions = []
+
+            for o in self._find_options(parsed.options):
+                cond = '(( %s ))' % make_option_variable_name(o, prefix='HAVE_')
+                conditions.append(cond)
+
+            if len(conditions) == 1:
+                return conditions[0]
+            else:
+                return '{ %s }' % ' || '.join(conditions)
+        else:
+            raise Exception('invalid instance of `parse`')
+
     def _generate_option_strings_completion(self):
         r  = 'if (( ! END_OF_OPTIONS )) && [[ "$cur" = -* ]]; then\n'
         r += '  local -a POSSIBLE_OPTIONS=()\n'
@@ -336,17 +419,22 @@ done'''
             option_guard = []
 
             if not option.multiple_option:
-                option_guard += [make_option_variable_name(option)]
+                option_guard += ["! %s" % make_option_variable_name(option, prefix='HAVE_')]
 
             for exclusive_option in option.get_conflicting_options():
-                option_guard += [make_option_variable_name(exclusive_option)]
+                option_guard += ["! %s" % make_option_variable_name(exclusive_option, prefix='HAVE_')]
 
             if option_guard:
-                option_guard = '(( %s )) || ' % ' || '.join(option_guard)
+                option_guard = '(( %s )) && ' % ' && '.join(option_guard)
             else:
                 option_guard = ''
 
-            r += '  %sPOSSIBLE_OPTIONS+=(%s)\n' % (option_guard, ' '.join(shell.escape(o) for o in option.option_strings))
+            when_guard = ''
+            if option.when is not None:
+                when_guard = self._generate_when_conditions(option.when)
+                when_guard = '%s && ' % when_guard
+
+            r += '  %s%sPOSSIBLE_OPTIONS+=(%s)\n' % (option_guard, when_guard, ' '.join(shell.escape(o) for o in option.option_strings))
         r += '  %s -a -- "$cur" "${POSSIBLE_OPTIONS[@]}"\n' % self.ctxt.helpers.use_function('compgen_w_replacement')
         r += 'fi'
         return r
@@ -507,12 +595,12 @@ __is_oldstyle_option() {
           (G0, '\n'),
           (G1, 'case "$cur" in\n'),
           (G1, '  --*=*)'),
-          (LR, '\n    __complete_long_with_required_arg "${cur%%=*}" "${cur##*=}" && return 0'),
-          (LO, '\n    __complete_long_with_optional_arg "${cur%%=*}" "${cur##*=}" && return 0'),
+          (LR, '\n    __complete_long_with_required_arg "${cur%%=*}" "${cur#*=}" && return 0'),
+          (LO, '\n    __complete_long_with_optional_arg "${cur%%=*}" "${cur#*=}" && return 0'),
           (G1, ';;\n'),
           (G1, '  -*=*)'),
-          (OR, '\n    __complete_old_with_required_arg "${cur%%=*}" "${cur##*=}" && return 0'),
-          (OO, '\n    __complete_old_with_optional_arg "${cur%%=*}" "${cur##*=}" && return 0'),
+          (OR, '\n    __complete_old_with_required_arg "${cur%%=*}" "${cur#*=}" && return 0'),
+          (OO, '\n    __complete_old_with_optional_arg "${cur%%=*}" "${cur#*=}" && return 0'),
           (G1, ';;\n'),
           (G1, '  -*)\n'),
           (G2, '    __prefix_compreply() {\n'),

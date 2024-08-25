@@ -8,10 +8,16 @@ def _action_complete(self, command, *args):
     return self
 
 
+def _action_when(self, when):
+    setattr(self, 'condition', when)
+    return self
+
+
 def _action_set_multiple_option(self, enable=True):
     setattr(self, 'multiple_option', enable)
     return self
 
 
 argparse.Action.complete = _action_complete
+argparse.Action.when = _action_when
 argparse.Action.set_multiple_option = _action_set_multiple_option

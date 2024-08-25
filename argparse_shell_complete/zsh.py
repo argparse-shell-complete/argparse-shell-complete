@@ -155,7 +155,7 @@ class ZshCompletionGenerator():
         return self.completer.complete(context, command, *args)
 
     def complete_option(self, option):
-        return make_argument_option_spec(
+        option_spec = make_argument_option_spec(
             option.option_strings,
             conflicting_options = option.get_conflicting_option_strings(),
             description = option.help,
@@ -165,28 +165,37 @@ class ZshCompletionGenerator():
             action = self.complete(option, *option.complete)
         )
 
+        return (option.when, option_spec)
+
     def complete_subcommands(self, option):
         choices = {}
         for name, subcommand in option.subcommands.items():
             choices[name] = subcommand.help
+
         self.command_counter += 1
-        return "%d:command%d:%s" % (
+
+        option_spec = "%d:command%d:%s" % (
             option.get_positional_num(),
             self.command_counter,
             self.complete(option, 'choices', choices)
         )
 
+        return (None, option_spec)
+
     def complete_positional(self, option):
-        return "%d:%s:%s" % (
+        option_spec = "%d:%s:%s" % (
             option.get_positional_num(),
             shell.escape(escape_colon(option.help)) if option.help else "' '",
             self.complete(option, *option.complete)
         )
 
+        return (None, option_spec)
+
     def _generate_completion_function(self):
         args = []
 
-        r = '%s() {\n' % self.funcname
+        r =  '%s() {\n' % self.funcname
+        r += '  local opts="%s"\n' % self._get_option_strings()
 
         if self.subcommands:
             if self.commandline.abbreviate_commands:
@@ -194,10 +203,9 @@ class ZshCompletionGenerator():
             else:
                 abbrevs = utils.DummyAbbreviationGenerator()
 
-            get_positional_func = self.ctxt.helpers.use_function('get_positional')
+            zsh_helper_func = self.ctxt.helpers.use_function('zsh_helper')
             r += '  # We have to check for subcommands here, because _arguments modifies $words\n'
-            r += '  local opts="%s"\n' % self._get_option_strings()
-            r += '  case "$(%s "$opts" %d "${words[@]}")" in\n' % (get_positional_func, self.subcommands.get_positional_num())
+            r += '  case "$(%s "$opts" get_positional %d "${words[@]}")" in\n' % (zsh_helper_func, self.subcommands.get_positional_num())
             for name, subcommand in self.subcommands.subcommands.items():
                 sub_funcname = shell.make_completion_funcname(subcommand)
                 pattern = '|'.join(abbrevs.get_abbreviations(name))
@@ -229,11 +237,16 @@ class ZshCompletionGenerator():
 
         if len(args):
             # TODO: add -s to _arguments
-            r += '  local -a arguments=(\n'
-            r += '%s\n' % utils.indent('\n'.join(args), 4)
-            r += '  )\n'
-            r += '\n'
-            r += '  _arguments -S "${arguments[@]}"\n'
+            zsh_helper = self.ctxt.helpers.use_function('zsh_helper')
+
+            r += '  local -a args=()\n'
+            for when, option_spec in args:
+                if when is None:
+                    r += '  args+=(%s)\n' % option_spec
+                else:
+                    r += '  %s "$opts" %s -- "${words[@]}" &&\\\n' % (zsh_helper, when)
+                    r += '    args+=(%s)\n' % option_spec
+            r += '  _arguments -S "${args[@]}"\n'
 
         r += '}'
 
