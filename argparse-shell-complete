@@ -48,6 +48,9 @@ p.add_argument('--inherit-options', default=False, type=parse_bool,
 p.add_argument('--vim-modeline', default=True, type=parse_bool,
                help='Sets whether a vim modeline comment shall be appended to the generated code')
 
+p.add_argument('--zsh-compdef', default=True, type=parse_bool,
+               help='Sets whether #compdef is used in zsh scripts')
+
 p.add_argument('--include-file', action='append',
                help='Include file in output').complete('file')
 
@@ -171,6 +174,7 @@ def generate(opts):
     config.set_multiple_options(opts.multiple_options)
     config.set_inherit_options(opts.inherit_options)
     config.set_vim_modeline(opts.vim_modeline)
+    config.set_zsh_compdef(opts.zsh_compdef)
     if opts.include_file:
         config.include_many_files(opts.include_file)
 

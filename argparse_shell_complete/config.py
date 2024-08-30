@@ -15,6 +15,7 @@ class Config:
         self.inherit_options = False
         self.vim_modeline = True
         self.include_files = []
+        self.zsh_compdef = True
 
     def set_abbreviate_commands(self, enable):
         '''
@@ -148,6 +149,11 @@ class Config:
 
         self.vim_modeline = enable
 
+    def set_zsh_compdef(self, enable):
+        assert _is_bool(enable), "Config.set_zsh_compdef: enable: expected bool, got %r" % enable
+
+        self.zsh_compdef = enable
+
     def include_file(self, file):
         # TODO: docstring
         self.include_files.append(file)
@@ -155,3 +161,4 @@ class Config:
     def include_many_files(self, files):
         # TODO: docstring
         self.include_files.extend(files)
+

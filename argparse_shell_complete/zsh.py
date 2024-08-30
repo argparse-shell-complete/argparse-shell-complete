@@ -256,7 +256,10 @@ def generate_completion(commandline, program_name=None, config=None):
     result = shell.CompletionGenerator(ZshCompletionGenerator, zsh_helpers.ZSH_Helpers, commandline, program_name, config)
     functions = result.result
 
-    output = ['#compdef %s' % functions[0].commandline.prog]
+    output = []
+
+    if config.zsh_compdef:
+        output += ['#compdef %s' % functions[0].commandline.prog]
 
     output.append(generation_notice.GENERATION_NOTICE)
 
@@ -266,7 +269,11 @@ def generate_completion(commandline, program_name=None, config=None):
         output.append(code)
 
     output += [r.result for r in functions]
-    output += ['%s "$@"' % functions[0].funcname]
+
+    if config.zsh_compdef:
+        output += ['%s "$@"' % functions[0].funcname]
+    else:
+        output += ['compdef %s %s' % (functions[0].funcname, functions[0].commandline.prog)]
 
     if config.vim_modeline:
         output += [modeline.get_vim_modeline('zsh')]
