@@ -41,12 +41,12 @@ cmdp.add_argument('--range',            help='Complete a range', type=int, choic
 # =============================================================================
 cmdp = subp.add_parser('when', help='Test the "when"-feature')
 
-cmdp.add_argument('--var', '-var', '-v', help='Conditional variable')
-cmdp.add_argument('--optional', '-optional', '-o', nargs='?', help='Conditional variable')
-cmdp.add_argument('--if-var', help='Only show option if --var is given').when('has_option --var -var -v')
-cmdp.add_argument('--if-var-is-foo', help='Only show option if --var is foo or bar').when('option_is --var -var -v -- foo bar')
-cmdp.add_argument('--if-optional', help='Only show option if --optional is given').when('has_option --optional -optional -o')
-cmdp.add_argument('--if-optional-is-foo', help='Only show option if --optional is foo or bar').when('option_is --optional -optional -o -- foo bar')
+cmdp.add_argument('--var', '-var', '-V',           help='Conditional variable')
+cmdp.add_argument('--optional', '-optional', '-O', help='Conditional variable', nargs='?')
+cmdp.add_argument('--if-var', help='Only show option if --var is given').when('has_option --var -var -V')
+cmdp.add_argument('--if-var-is-foo', help='Only show option if --var is foo or bar').when('option_is --var -var -V -- foo bar')
+cmdp.add_argument('--if-optional', help='Only show option if --optional is given').when('has_option --optional -optional -O')
+cmdp.add_argument('--if-optional-is-foo', help='Only show option if --optional is foo').when('option_is --optional -optional -O -- foo')
 
 #cmdp.add_argument('--if-not-var', help='Only show option if --var is not given').when('not_has_option --var -v')
 
@@ -81,12 +81,12 @@ cmdp1.add_argument('--sub-subcommand-choices',    help='Complete from choices', 
 # =============================================================================
 cmdp = subp.add_parser('test',  help='For testing the completer')
 
-cmdp.add_argument('-f', '--flag',       help='A option flag', action='store_true') # TODO: remove me
-cmdp.add_argument('-o', '--optional',   nargs='?', choices=(1,2,3))
-cmdp.add_argument('-c', '--choices',    help='Complete from choices', choices=(1,'two and a half',3))
-cmdp.add_argument('--special-chars-in-description', help='Here are some special chars: $"\'\\[]*`)')
-cmdp.add_argument('--multiple-option', action='store_true').set_multiple_option()
-cmdp.add_argument('--multiple-option-with-arg').set_multiple_option()
+cmdp.add_argument('-F', '-flag',     '--flag',       help='A option flag', action='store_true')
+cmdp.add_argument('-O', '-optional', '--optional',   help='Option with optional arg', nargs='?', choices=(1,2,3))
+cmdp.add_argument('-A', '-arg',      '--arg',        help='Option with arg', choices=(1,2,3))
+cmdp.add_argument('--special-chars-in-description',  help='Here are some special chars: $"\'\\[]*`)')
+cmdp.add_argument('--multiple-flag', action='store_true').set_multiple_option()
+cmdp.add_argument('--multiple-arg').set_multiple_option()
 
 group = cmdp.add_mutually_exclusive_group()
 group.add_argument('--exclusive-1', action='store_true')
