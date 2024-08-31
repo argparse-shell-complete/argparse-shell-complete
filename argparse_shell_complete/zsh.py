@@ -246,7 +246,7 @@ class ZshCompletionGenerator():
                 else:
                     r += '  %s "$opts" %s -- "${words[@]}" &&\\\n' % (zsh_helper, when)
                     r += '    args+=(%s)\n' % option_spec
-            r += '  _arguments -S "${args[@]}"\n'
+            r += '  _arguments -S -s -w "${args[@]}"\n'
 
         r += '}'
 

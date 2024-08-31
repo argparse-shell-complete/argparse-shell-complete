@@ -6,3 +6,7 @@ src/
 python-argparse-shell-complete/
 python-argparse-shell-complete-*.pkg.*
 __pycache__
+test/out.bash
+test/out.fish
+test/out.zsh
+test/tests.new.py
