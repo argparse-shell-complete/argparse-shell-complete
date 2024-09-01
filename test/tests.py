@@ -49,14 +49,14 @@ when              -- Test the "when"-feature\
  'send': 'argparse-shell-complete-test test -',
  'bash_expected': '''\
 > argparse-shell-complete-test test -
--c                              --help
---choices                       --multiple-option
--choices                        --multiple-option-with-arg
---exclusive-1                   -o
---exclusive-2                   --optional
--f                              -optional
---flag                          --special-chars-in-description
--h
+-A                              -h
+--arg                           --help
+-arg                            --multiple-arg
+--exclusive-1                   --multiple-flag
+--exclusive-2                   -O
+-F                              --optional
+--flag                          -optional
+-flag                           --special-chars-in-description
 > argparse-shell-complete-test test -\
 ''',
  'fish_expected': '''\
@@ -91,8 +91,8 @@ when              -- Test the "when"-feature\
  'send': 'argparse-shell-complete-test test --arg ',
  'bash_expected': '''\
 > argparse-shell-complete-test test --arg
-first1  first2  first3
-> argparse-shell-complete-test test --arg first\
+1  2  3
+> argparse-shell-complete-test test --arg\
 ''',
  'fish_expected': '''\
 > argparse-shell-complete-test test --arg
@@ -109,6 +109,8 @@ first1  first2  first3
  'description': 'Check long option with argument (with equal sign)',
  'send': 'argparse-shell-complete-test test --arg=',
  'bash_expected': '''\
+> argparse-shell-complete-test test --arg=
+1  2  3
 > argparse-shell-complete-test test --arg=\
 ''',
  'fish_expected': '''\
@@ -127,6 +129,8 @@ first1  first2  first3
  'description': 'Check short option with argument (without space)',
  'send': 'argparse-shell-complete-test test -A',
  'bash_expected': '''\
+> argparse-shell-complete-test test -A
+-A1  -A2  -A3
 > argparse-shell-complete-test test -A\
 ''',
  'fish_expected': '''\
@@ -145,8 +149,8 @@ first1  first2  first3
  'send': 'argparse-shell-complete-test test -A ',
  'bash_expected': '''\
 > argparse-shell-complete-test test -A
-first1  first2  first3
-> argparse-shell-complete-test test -A first\
+1  2  3
+> argparse-shell-complete-test test -A\
 ''',
  'fish_expected': '''\
 > argparse-shell-complete-test test -A
@@ -164,8 +168,8 @@ first1  first2  first3
  'send': 'argparse-shell-complete-test test -arg ',
  'bash_expected': '''\
 > argparse-shell-complete-test test -arg
-first1  first2  first3
-> argparse-shell-complete-test test -arg first\
+1  2  3
+> argparse-shell-complete-test test -arg\
 ''',
  'fish_expected': '''\
 > argparse-shell-complete-test test -arg
@@ -182,6 +186,8 @@ first1  first2  first3
  'description': 'Check old-style option with argument (with equal sign)',
  'send': 'argparse-shell-complete-test test -arg=',
  'bash_expected': '''\
+> argparse-shell-complete-test test -arg=
+1  2  3
 > argparse-shell-complete-test test -arg=\
 ''',
  'fish_expected': '''\
@@ -220,6 +226,8 @@ first1  first2  first3
  'comment': 'FISH has a slightly wrong output',
  'send': 'argparse-shell-complete-test test -O',
  'bash_expected': '''\
+> argparse-shell-complete-test test -O
+-O1  -O2  -O3
 > argparse-shell-complete-test test -O\
 ''',
  'fish_expected': '''\
@@ -275,8 +283,8 @@ first1  first2  first3
  'send': 'argparse-shell-complete-test test --multiple-flag --multiple-',
  'bash_expected': '''\
 > argparse-shell-complete-test test --multiple-flag --multiple-
---multiple-option           --multiple-option-with-arg
-> argparse-shell-complete-test test --multiple-flag --multiple-option\
+--multiple-arg   --multiple-flag
+> argparse-shell-complete-test test --multiple-flag --multiple-\
 ''',
  'fish_expected': '''\
 > argparse-shell-complete-test test --multiple-flag --multiple-
@@ -314,6 +322,8 @@ first1  first2  first3
  'description': 'Check option stacking (with required argument and no space)',
  'send': 'argparse-shell-complete-test test -FA',
  'bash_expected': '''\
+> argparse-shell-complete-test test -FA
+-FA1  -FA2  -FA3
 > argparse-shell-complete-test test -FA\
 ''',
  'fish_expected': '''\
@@ -333,8 +343,8 @@ first1  first2  first3
  'send': 'argparse-shell-complete-test test -FA ',
  'bash_expected': '''\
 > argparse-shell-complete-test test -FA
-first1  first2  first3
-> argparse-shell-complete-test test -FA first\
+1  2  3
+> argparse-shell-complete-test test -FA\
 ''',
  'fish_expected': '''\
 > argparse-shell-complete-test test -FA
@@ -352,6 +362,8 @@ first1  first2  first3\
  'comment': 'FISH produces a bit of a wrong output',
  'send': 'argparse-shell-complete-test test -FO',
  'bash_expected': '''\
+> argparse-shell-complete-test test -FO
+-FO1  -FO2  -FO3
 > argparse-shell-complete-test test -FO\
 ''',
  'fish_expected': '''\
@@ -372,8 +384,8 @@ first1  first2  first3\
  'send': 'argparse-shell-complete-test when -',
  'bash_expected': '''\
 > argparse-shell-complete-test when -
--h          -o          -optional   --var
---help      --optional  -v          -var
+-h          -O          -optional   --var
+--help      --optional  -V          -var
 > argparse-shell-complete-test when -\
 ''',
  'fish_expected': '''\
@@ -409,7 +421,7 @@ first1  first2  first3\
  'description': 'when: Check if --if-var appears (with -V)',
  'send': 'argparse-shell-complete-test when -V value --if-',
  'bash_expected': '''\
-> argparse-shell-complete-test when -V value --if-\
+> argparse-shell-complete-test when -V value --if-var\
 ''',
  'fish_expected': '''\
 > argparse-shell-complete-test when -V value --if-var\
@@ -439,7 +451,9 @@ first1  first2  first3\
  'description': 'when: Check if --if-var and --if-var-is-foo appears (with -V foo)',
  'send': 'argparse-shell-complete-test when -V foo --if-',
  'bash_expected': '''\
-> argparse-shell-complete-test when -V foo --if-\
+> argparse-shell-complete-test when -V foo --if-
+--if-var         --if-var-is-foo
+> argparse-shell-complete-test when -V foo --if-var\
 ''',
  'fish_expected': '''\
 > argparse-shell-complete-test when -V foo --if-var
@@ -459,7 +473,9 @@ first1  first2  first3\
  'description': 'when: Check if --if-var and --if-var-is-foo appears (with -Vfoo)',
  'send': 'argparse-shell-complete-test when -Vfoo --if-',
  'bash_expected': '''\
-> argparse-shell-complete-test when -Vfoo --if-optional\
+> argparse-shell-complete-test when -Vfoo --if-
+--if-var         --if-var-is-foo
+> argparse-shell-complete-test when -Vfoo --if-var\
 ''',
  'fish_expected': '''\
 > argparse-shell-complete-test when -Vfoo --if-var
@@ -589,7 +605,7 @@ first1  first2  first3\
  'description': 'when: Check if --if-optional appears (with -O)',
  'send': 'argparse-shell-complete-test when -O --if-',
  'bash_expected': '''\
-> argparse-shell-complete-test when -O --if-\
+> argparse-shell-complete-test when -O --if-optional\
 ''',
  'fish_expected': '''\
 > argparse-shell-complete-test when -O --if-optional\
@@ -634,6 +650,8 @@ first1  first2  first3\
  'description': 'when: Check if --if-optional and --if-optional-is-foo appears (with -Ofoo)',
  'send': 'argparse-shell-complete-test when -Ofoo --if-',
  'bash_expected': '''\
+> argparse-shell-complete-test when -Ofoo --if-
+--if-optional         --if-optional-is-foo
 > argparse-shell-complete-test when -Ofoo --if-optional\
 ''',
  'fish_expected': '''\
