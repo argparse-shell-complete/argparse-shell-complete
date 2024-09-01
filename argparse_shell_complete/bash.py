@@ -387,7 +387,7 @@ done'''
                     ))
 
                 if len(value_equals) == 1:
-                    cond = '{ %s && %s }' % (have_option, value_equals)
+                    cond = '{ %s && %s }' % (have_option, value_equals[0])
                 else:
                     cond = '{ %s && { %s } }' % (have_option, ' || '.join(value_equals))
 
