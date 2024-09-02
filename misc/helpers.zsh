@@ -138,7 +138,7 @@ zsh_helper() {
       ;;
   esac
 
-  # oontinuing setup....
+  # continuing setup....
 
   # ===========================================================================
   # Parsing of available options

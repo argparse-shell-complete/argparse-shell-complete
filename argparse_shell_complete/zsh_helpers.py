@@ -140,7 +140,7 @@ case "$CMD" in
     ;;
 esac
 
-# oontinuing setup....
+# continuing setup....
 
 # ===========================================================================
 # Parsing of available options
