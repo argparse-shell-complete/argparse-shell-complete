@@ -1,6 +1,47 @@
 #!/usr/bin/zsh
 
 zsh_helper() {
+  # ===========================================================================
+  #
+  # This function is for querying the command line.
+  #
+  # COMMANDS
+  #   setup <OPTIONS> <ARGS...>
+  #     This is the first call you have to make, otherwise the other commands 
+  #     won't (successfully) work.
+  #
+  #     It parses <ARGS> accordings to <OPTIONS> and stores results in the 
+  #     variables POSITIONALS, HAVING_OPTIONS and OPTION_VALUES.
+  #
+  #     The first argument is a comma-seperated list of options that the parser
+  #     should know about. Short options (-o), long options (--option), and
+  #     old-style options (-option) are supported.
+  #
+  #     If an option takes an argument, it is suffixed by '='.
+  #     If an option takes an optional argument, it is suffixed by '=?'.
+  #
+  #   get_positional <NUM>
+  #     Prints out the positional argument number NUM (starting from 1)
+  #
+  #   has_option <OPTIONS...>
+  #     Checks if a option given in OPTIONS is passed on commandline.
+  #
+  #   option_is <OPTIONS...> -- <VALUES...>
+  #     Checks if one option in OPTIONS has a value of VALUES.
+  #
+  # EXAMPLE
+  #   local POSITIONALS HAVING_OPTIONS OPTION_VALUES
+  #   zsh_helper setup '-f,-a=,-optional=?' program_name -f -optional -a foo bar
+  #   zsh_helper has_option -f
+  #   zsh_helper option_is -a -- foo
+  #
+  #   Here, -f is a flag, -a takes an argument, and -optional takes an optional
+  #   argument.
+  #
+  #   Both queries return true.
+  #
+  # ===========================================================================
+
   local FUNC="zsh_helper"
   local CONTAINS="${FUNC}_contains"
 
@@ -9,15 +50,6 @@ zsh_helper() {
     for ARG; do [[ "$KEY" == "$ARG" ]] && return 0; done
     return 1
   }
-
-  local IFS=','
-  local -a OPTIONS=(${=1})
-  unset IFS
-  shift
-
-  # ===========================================================================
-  # Command parsing
-  # ===========================================================================
 
   if [[ $# == 0 ]]; then
     echo "$FUNC: missing command" >&2
@@ -29,42 +61,39 @@ zsh_helper() {
 
   case "$CMD" in
     get_positional)
-      local WANTED_POSITIONAL=$1
-      shift
-      if test $WANTED_POSITIONAL -eq 0; then
-        echo "$FUNC: argv[2]: positionals start at 1, not 0!" >&2
+      if test $# -ne 1; then
+        echo "$FUNC: get_positional: takes exactly one argument" >&2
+        return 1;
+      fi
+
+      if test "$1" -eq 0; then
+        echo "$FUNC: get_positional: positionals start at 1, not 0!" >&2
         return 1
       fi
+
+      printf "%s" "${POSITIONALS[$1]}"
+      return 0
       ;;
     has_option)
-      local -a HAS_OPTION
-      local IS_END_OF_OPTIONS=false
-      while test $# -ge 0; do
-        if [[ "$1" == "--" ]]; then
-          IS_END_OF_OPTIONS=true
-          shift
-          break
-        else
-          HAS_OPTION+=("$1")
-          shift
-        fi
+      if test $# -eq 0; then
+        echo "$FUNC: has_option: arguments required" >&2
+        return 1;
+      fi
+
+      local OPTION=''
+      for OPTION in "${HAVING_OPTIONS[@]}"; do
+        $CONTAINS "$OPTION" "$@" && return 0
       done
 
-      if ! $IS_END_OF_OPTIONS; then
-        echo "$FUNC: has_option: missing terminating '--'" >&2
-        return 1
-      fi
+      return 1
       ;;
     option_is)
       local -a CMD_OPTION_IS_OPTIONS CMD_OPTION_IS_VALUES
       local END_OF_OPTIONS_NUM=0
 
-      while test $# -ge 0; do
+      while test $# -ge 1; do
         if [[ "$1" == "--" ]]; then
-          if test $(( ++END_OF_OPTIONS_NUM )) -eq 2; then
-            shift
-            break
-          fi
+          (( ++END_OF_OPTIONS_NUM ))
         elif test $END_OF_OPTIONS_NUM -eq 0; then
           CMD_OPTION_IS_OPTIONS+=("$1")
         elif test $END_OF_OPTIONS_NUM -eq 1; then
@@ -74,16 +103,42 @@ zsh_helper() {
         shift
       done
 
-      if test $END_OF_OPTIONS_NUM -ne 2; then
-        echo "$FUNC: option_is: missing terminating '--'" >&2
+      if test ${#CMD_OPTION_IS_OPTIONS[@]} -eq 0; then
+        echo "$FUNC: option_is: missing options" >&2
         return 1
       fi
+
+      if test ${#CMD_OPTION_IS_VALUES[@]} -eq 0; then
+        echo "$FUNC: option_is: missing values" >&2
+        return 1
+      fi
+
+      local I=${#HAVING_OPTIONS[@]}
+      while test $I -ge 1; do
+        local OPTION="${HAVING_OPTIONS[$I]}"
+        if $CONTAINS "$OPTION" "${CMD_OPTION_IS_OPTIONS[@]}"; then
+          local VALUE="${OPTION_VALUES[$I]}"
+          $CONTAINS "$VALUE" "${CMD_OPTION_IS_VALUES[@]}" && return 0
+        fi
+
+        (( --I ))
+      done
+
+      return 1
+      ;;
+    setup)
+      local IFS=','
+      local -a OPTIONS=(${=1})
+      unset IFS
+      shift
       ;;
     *)
       echo "$FUNC: argv[1]: invalid command" >&2
       return 1
       ;;
   esac
+
+  # oontinuing setup....
 
   # ===========================================================================
   # Parsing of available options
@@ -116,9 +171,9 @@ zsh_helper() {
   # Parsing of command line options
   # ===========================================================================
 
-  local -a POSITIONALS
-  local -a HAVING_OPTIONS
-  local -a OPTION_VALUES
+  POSITIONALS=()
+  HAVING_OPTIONS=()
+  OPTION_VALUES=()
 
   local ARGI=2 # ARGI[1] is program name
   while [[ $ARGI -le $# ]]; do
@@ -229,38 +284,6 @@ zsh_helper() {
 
     (( ARGI++ ))
   done
-
-  # ===========================================================================
-  # Execution of command
-  # ===========================================================================
-
-  case "$CMD" in
-    get_positional)
-      printf "%s" "${POSITIONALS[$WANTED_POSITIONAL]}"
-      return 0
-      ;;
-    has_option)
-      local OPTION=''
-      for OPTION in "${HAVING_OPTIONS[@]}"; do
-        $CONTAINS "$OPTION" "${HAS_OPTION[@]}" && return 0
-      done
-      return 1
-      ;;
-    option_is)
-      local I=${#HAVING_OPTIONS[@]}
-      while test $I -ge 1; do
-        local OPTION="${HAVING_OPTIONS[$I]}"
-        if $CONTAINS "$OPTION" "${CMD_OPTION_IS_OPTIONS[@]}"; then
-          local VALUE="${OPTION_VALUES[$I]}"
-          $CONTAINS "$VALUE" "${CMD_OPTION_IS_VALUES[@]}" && return 0
-        fi
-
-        (( --I ))
-      done
-
-      return 1
-      ;;
-  esac
 }
 
 _exec() {
@@ -291,8 +314,23 @@ fi
 test_case() {
   local TEST_NUMBER="$1"; shift
   local EXPECTED="$1"; shift
+  local -a TEST_ARGS=() SETUP_ARGS=()
+
+  while test $# -ge 1; do
+    if [[ "$1" == ":SETUP:" ]]; then
+      shift
+      SETUP_ARGS=("$@")
+      break
+    else
+      TEST_ARGS+=("$1")
+      shift
+    fi
+  done
+
+  zsh_helper setup "${SETUP_ARGS[@]}"
+
   local RESULT
-  RESULT="$(zsh_helper "$@")"
+  RESULT="$(zsh_helper "${TEST_ARGS[@]}")"
   local RESULT_EXIT=$?
   echo -n "Testing $TEST_NUMBER ... "
 
@@ -314,47 +352,45 @@ test_case() {
   echo "OK"
 }
 
-for i in $(seq 9999); do
 opts='-f,--flag,-flag,-a=,--arg=,-arg=,-o=?,--optional=?,-optional=?'
-test_case 01 'foo' ''      get_positional 1 prog foo
-test_case 02 'foo' "$opts" get_positional 1 prog foo
-test_case 03 'foo' "$opts" get_positional 1 prog -f foo
-test_case 04 'foo' "$opts" get_positional 1 prog -flag foo
-test_case 05 'foo' "$opts" get_positional 1 prog --flag foo
-test_case 06 'foo' "$opts" get_positional 1 prog -a arg foo
-test_case 07 'foo' "$opts" get_positional 1 prog -arg arg foo
-test_case 08 'foo' "$opts" get_positional 1 prog --arg arg foo
-test_case 09 'foo' "$opts" get_positional 1 prog -aarg foo
-test_case 10 'foo' "$opts" get_positional 1 prog -arg=arg foo
-test_case 11 'foo' "$opts" get_positional 1 prog --arg=arg foo
-test_case 12 'foo' "$opts" get_positional 1 prog -o foo
-test_case 13 'foo' "$opts" get_positional 1 prog -optional foo
-test_case 14 'foo' "$opts" get_positional 1 prog --optional foo
-test_case 15 'foo' "$opts" get_positional 1 prog -oarg foo
-test_case 16 'foo' "$opts" get_positional 1 prog -optional=arg foo
-test_case 17 'foo' "$opts" get_positional 1 prog --optional=arg foo
-test_case 18 'foo' "$opts" get_positional 1 prog -foarg foo
-test_case 19 'foo' "$opts" get_positional 1 prog -faarg foo
-test_case 20 'foo' "$opts" get_positional 1 prog -fa arg foo
-test_case 21 'foo' "$opts" get_positional 1 prog -- foo
-test_case 22 '-'   "$opts" get_positional 1 prog -
-test_case 23 '-f'  "$opts" get_positional 1 prog -- -f
-test_case 24 -true "$opts" has_option -f --flag -flag -- prog -f
-test_case 25 -true "$opts" has_option -f --flag -flag -- prog --flag
-test_case 26 -true "$opts" has_option -f --flag -flag -- prog -flag
-test_case 27 -false "$opts" has_option -f --flag -flag -- prog -- -f
-test_case 28 -false "$opts" has_option -f --flag -flag -- prog -- --flag
-test_case 29 -false "$opts" has_option -f --flag -flag -- prog -- -flag
-test_case 30 -false "$opts" has_option -f --flag -flag -- prog --arg --flag
-test_case 31 -false "$opts" has_option -f --flag -flag -- prog -a --flag
-test_case 32 -true "$opts" option_is -a --arg -arg -- foo bar -- prog -a foo
-test_case 33 -true "$opts" option_is -a --arg -arg -- foo bar -- prog --arg foo
-test_case 34 -true "$opts" option_is -a --arg -arg -- foo bar -- prog -arg foo
-test_case 35 -true "$opts" option_is -o --optional -optional -- foo bar -- prog -ofoo
-test_case 36 -true "$opts" option_is -o --optional -optional -- foo bar -- prog --optional=foo
-test_case 37 -true "$opts" option_is -o --optional -optional -- foo bar -- prog -optional=foo
-test_case 38 -true "$opts" option_is -o --optional -optional -- foo bar -- prog -obar
-test_case 39 -true "$opts" option_is -o --optional -optional -- foo bar -- prog --optional=bar
-test_case 40 -true "$opts" option_is -o --optional -optional -- foo bar -- prog -optional=bar
-test_case 41 -false "$opts" option_is -a --arg -arg -- foo -- prog -flag
-done
+test_case 01 'foo'  get_positional 1 :SETUP: "$opts" prog foo
+test_case 02 'foo'  get_positional 1 :SETUP: "$opts" prog foo
+test_case 03 'foo'  get_positional 1 :SETUP: "$opts" prog -f foo
+test_case 04 'foo'  get_positional 1 :SETUP: "$opts" prog -flag foo
+test_case 05 'foo'  get_positional 1 :SETUP: "$opts" prog --flag foo
+test_case 06 'foo'  get_positional 1 :SETUP: "$opts" prog -a arg foo
+test_case 07 'foo'  get_positional 1 :SETUP: "$opts" prog -arg arg foo
+test_case 08 'foo'  get_positional 1 :SETUP: "$opts" prog --arg arg foo
+test_case 09 'foo'  get_positional 1 :SETUP: "$opts" prog -aarg foo
+test_case 10 'foo'  get_positional 1 :SETUP: "$opts" prog -arg=arg foo
+test_case 11 'foo'  get_positional 1 :SETUP: "$opts" prog --arg=arg foo
+test_case 12 'foo'  get_positional 1 :SETUP: "$opts" prog -o foo
+test_case 13 'foo'  get_positional 1 :SETUP: "$opts" prog -optional foo
+test_case 14 'foo'  get_positional 1 :SETUP: "$opts" prog --optional foo
+test_case 15 'foo'  get_positional 1 :SETUP: "$opts" prog -oarg foo
+test_case 16 'foo'  get_positional 1 :SETUP: "$opts" prog -optional=arg foo
+test_case 17 'foo'  get_positional 1 :SETUP: "$opts" prog --optional=arg foo
+test_case 18 'foo'  get_positional 1 :SETUP: "$opts" prog -foarg foo
+test_case 19 'foo'  get_positional 1 :SETUP: "$opts" prog -faarg foo
+test_case 20 'foo'  get_positional 1 :SETUP: "$opts" prog -fa arg foo
+test_case 21 'foo'  get_positional 1 :SETUP: "$opts" prog -- foo
+test_case 22 '-'    get_positional 1 :SETUP: "$opts" prog -
+test_case 23 '-f'   get_positional 1 :SETUP: "$opts" prog -- -f
+test_case 24 -true  has_option -f --flag -flag :SETUP: "$opts" prog -f
+test_case 25 -true  has_option -f --flag -flag :SETUP: "$opts" prog --flag
+test_case 26 -true  has_option -f --flag -flag :SETUP: "$opts" prog -flag
+test_case 27 -false has_option -f --flag -flag :SETUP: "$opts" prog -- -f
+test_case 28 -false has_option -f --flag -flag :SETUP: "$opts" prog -- --flag
+test_case 29 -false has_option -f --flag -flag :SETUP: "$opts" prog -- -flag
+test_case 30 -false has_option -f --flag -flag :SETUP: "$opts" prog --arg --flag
+test_case 31 -false has_option -f --flag -flag :SETUP: "$opts" prog -a --flag
+test_case 32 -true  option_is -a --arg -arg -- foo bar :SETUP: "$opts" prog -a foo
+test_case 33 -true  option_is -a --arg -arg -- foo bar :SETUP: "$opts" prog --arg foo
+test_case 34 -true  option_is -a --arg -arg -- foo bar :SETUP: "$opts" prog -arg foo
+test_case 41 -false option_is -a --arg -arg -- foo     :SETUP: "$opts" prog -flag
+test_case 35 -true  option_is -o --optional -optional -- foo bar :SETUP: "$opts" prog -ofoo
+test_case 36 -true  option_is -o --optional -optional -- foo bar :SETUP: "$opts" prog --optional=foo
+test_case 37 -true  option_is -o --optional -optional -- foo bar :SETUP: "$opts" prog -optional=foo
+test_case 38 -true  option_is -o --optional -optional -- foo bar :SETUP: "$opts" prog -obar
+test_case 39 -true  option_is -o --optional -optional -- foo bar :SETUP: "$opts" prog --optional=bar
+test_case 40 -true  option_is -o --optional -optional -- foo bar :SETUP: "$opts" prog -optional=bar

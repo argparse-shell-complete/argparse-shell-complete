@@ -3,6 +3,47 @@
 from . import helpers
 
 _GET_POSITIONAL_FUNC = helpers.ShellFunction('zsh_helper', r'''
+# ===========================================================================
+#
+# This function is for querying the command line.
+#
+# COMMANDS
+#   setup <OPTIONS> <ARGS...>
+#     This is the first call you have to make, otherwise the other commands
+#     won't (successfully) work.
+#
+#     It parses <ARGS> accordings to <OPTIONS> and stores results in the
+#     variables POSITIONALS, HAVING_OPTIONS and OPTION_VALUES.
+#
+#     The first argument is a comma-seperated list of options that the parser
+#     should know about. Short options (-o), long options (--option), and
+#     old-style options (-option) are supported.
+#
+#     If an option takes an argument, it is suffixed by '='.
+#     If an option takes an optional argument, it is suffixed by '=?'.
+#
+#   get_positional <NUM>
+#     Prints out the positional argument number NUM (starting from 1)
+#
+#   has_option <OPTIONS...>
+#     Checks if a option given in OPTIONS is passed on commandline.
+#
+#   option_is <OPTIONS...> -- <VALUES...>
+#     Checks if one option in OPTIONS has a value of VALUES.
+#
+# EXAMPLE
+#   local POSITIONALS HAVING_OPTIONS OPTION_VALUES
+#   zsh_helper setup '-f,-a=,-optional=?' program_name -f -optional -a foo bar
+#   zsh_helper has_option -f
+#   zsh_helper option_is -a -- foo
+#
+#   Here, -f is a flag, -a takes an argument, and -optional takes an optional
+#   argument.
+#
+#   Both queries return true.
+#
+# ===========================================================================
+
 local FUNC="zsh_helper"
 local CONTAINS="${FUNC}_contains"
 
@@ -11,15 +52,6 @@ $CONTAINS() {
   for ARG; do [[ "$KEY" == "$ARG" ]] && return 0; done
   return 1
 }
-
-local IFS=','
-local -a OPTIONS=(${=1})
-unset IFS
-shift
-
-# ===========================================================================
-# Command parsing
-# ===========================================================================
 
 if [[ $# == 0 ]]; then
   echo "$FUNC: missing command" >&2
@@ -31,42 +63,39 @@ shift
 
 case "$CMD" in
   get_positional)
-    local WANTED_POSITIONAL=$1
-    shift
-    if test $WANTED_POSITIONAL -eq 0; then
-      echo "$FUNC: argv[2]: positionals start at 1, not 0!" >&2
+    if test $# -ne 1; then
+      echo "$FUNC: get_positional: takes exactly one argument" >&2
+      return 1;
+    fi
+
+    if test "$1" -eq 0; then
+      echo "$FUNC: get_positional: positionals start at 1, not 0!" >&2
       return 1
     fi
+
+    printf "%s" "${POSITIONALS[$1]}"
+    return 0
     ;;
   has_option)
-    local -a HAS_OPTION
-    local IS_END_OF_OPTIONS=false
-    while test $# -ge 0; do
-      if [[ "$1" == "--" ]]; then
-        IS_END_OF_OPTIONS=true
-        shift
-        break
-      else
-        HAS_OPTION+=("$1")
-        shift
-      fi
+    if test $# -eq 0; then
+      echo "$FUNC: has_option: arguments required" >&2
+      return 1;
+    fi
+
+    local OPTION=''
+    for OPTION in "${HAVING_OPTIONS[@]}"; do
+      $CONTAINS "$OPTION" "$@" && return 0
     done
 
-    if ! $IS_END_OF_OPTIONS; then
-      echo "$FUNC: has_option: missing terminating '--'" >&2
-      return 1
-    fi
+    return 1
     ;;
   option_is)
     local -a CMD_OPTION_IS_OPTIONS CMD_OPTION_IS_VALUES
     local END_OF_OPTIONS_NUM=0
 
-    while test $# -ge 0; do
+    while test $# -ge 1; do
       if [[ "$1" == "--" ]]; then
-        if test $(( ++END_OF_OPTIONS_NUM )) -eq 2; then
-          shift
-          break
-        fi
+        (( ++END_OF_OPTIONS_NUM ))
       elif test $END_OF_OPTIONS_NUM -eq 0; then
         CMD_OPTION_IS_OPTIONS+=("$1")
       elif test $END_OF_OPTIONS_NUM -eq 1; then
@@ -76,16 +105,42 @@ case "$CMD" in
       shift
     done
 
-    if test $END_OF_OPTIONS_NUM -ne 2; then
-      echo "$FUNC: option_is: missing terminating '--'" >&2
+    if test ${#CMD_OPTION_IS_OPTIONS[@]} -eq 0; then
+      echo "$FUNC: option_is: missing options" >&2
       return 1
     fi
+
+    if test ${#CMD_OPTION_IS_VALUES[@]} -eq 0; then
+      echo "$FUNC: option_is: missing values" >&2
+      return 1
+    fi
+
+    local I=${#HAVING_OPTIONS[@]}
+    while test $I -ge 1; do
+      local OPTION="${HAVING_OPTIONS[$I]}"
+      if $CONTAINS "$OPTION" "${CMD_OPTION_IS_OPTIONS[@]}"; then
+        local VALUE="${OPTION_VALUES[$I]}"
+        $CONTAINS "$VALUE" "${CMD_OPTION_IS_VALUES[@]}" && return 0
+      fi
+
+      (( --I ))
+    done
+
+    return 1
+    ;;
+  setup)
+    local IFS=','
+    local -a OPTIONS=(${=1})
+    unset IFS
+    shift
     ;;
   *)
     echo "$FUNC: argv[1]: invalid command" >&2
     return 1
     ;;
 esac
+
+# oontinuing setup....
 
 # ===========================================================================
 # Parsing of available options
@@ -118,9 +173,9 @@ done
 # Parsing of command line options
 # ===========================================================================
 
-local -a POSITIONALS
-local -a HAVING_OPTIONS
-local -a OPTION_VALUES
+POSITIONALS=()
+HAVING_OPTIONS=()
+OPTION_VALUES=()
 
 local ARGI=2 # ARGI[1] is program name
 while [[ $ARGI -le $# ]]; do
@@ -231,38 +286,6 @@ while [[ $ARGI -le $# ]]; do
 
   (( ARGI++ ))
 done
-
-# ===========================================================================
-# Execution of command
-# ===========================================================================
-
-case "$CMD" in
-  get_positional)
-    printf "%s" "${POSITIONALS[$WANTED_POSITIONAL]}"
-    return 0
-    ;;
-  has_option)
-    local OPTION=''
-    for OPTION in "${HAVING_OPTIONS[@]}"; do
-      $CONTAINS "$OPTION" "${HAS_OPTION[@]}" && return 0
-    done
-    return 1
-    ;;
-  option_is)
-    local I=${#HAVING_OPTIONS[@]}
-    while test $I -ge 1; do
-      local OPTION="${HAVING_OPTIONS[$I]}"
-      if $CONTAINS "$OPTION" "${CMD_OPTION_IS_OPTIONS[@]}"; then
-        local VALUE="${OPTION_VALUES[$I]}"
-        $CONTAINS "$VALUE" "${CMD_OPTION_IS_VALUES[@]}" && return 0
-      fi
-
-      (( --I ))
-    done
-
-    return 1
-    ;;
-esac
 ''')
 
 _EXEC = helpers.ShellFunction('exec', r'''
