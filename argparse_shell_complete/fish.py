@@ -122,15 +122,23 @@ class FishCompleter(shell.ShellCompleter):
 
 class Conditions:
     def __init__(self):
-        self.lines = []
+        self.condition_to_guard = {}
         self.counter = 0
 
     def add(self, condition):
-        # TODO
+        if condition in self.condition_to_guard:
+            return self.condition_to_guard[condition]
+
         condition_guard = 'guard%03d' % self.counter
+        self.condition_to_guard[condition] = condition_guard
         self.counter += 1
-        self.lines.append('set -l %s "%s"' % (condition_guard, condition))
         return '$%s' % condition_guard
+
+    def get_lines(self):
+        r = []
+        for condition, guard in self.condition_to_guard.items():
+            r.append('set -l %s "%s"' % (guard, condition))
+        return r
 
 class FishCompletionGenerator:
     def __init__(self, ctxt, commandline):
@@ -361,7 +369,7 @@ def generate_completion(commandline, program_name=None, config=None):
         output.append('')
         output.append(generator.command_comment)
         output.append(generator.options_for_helper)
-        output.extend(generator.conditions.lines)
+        output.extend(generator.conditions.get_lines())
         output.extend(generator.lines)
 
     if config.vim_modeline:
