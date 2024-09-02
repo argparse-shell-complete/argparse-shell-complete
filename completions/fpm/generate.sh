@@ -10,10 +10,7 @@ else
 fi
 
 if [[ $# -eq 0 ]]; then
-  echo "Usage: $0 {bash,fish,zsh}" >&2
-  exit 1
-elif [[ $# -gt 1 ]]; then
-  echo "Too many arguments provided" >&2
+  echo "Usage: $0 {bash,fish,zsh} <options>" >&2
   exit 1
 fi
 
@@ -22,4 +19,11 @@ fi
   exit 1
 }
 
-$argparse_shell_complete --multiple-options=True --zsh-compdef=False $1 fpm.py
+opts=''
+if [[ "$1" == 'fish' ]]; then
+  # --multiple-options=False (which is the default) makes the
+  # commpletion slower.
+  opts='--multiple-options=True'
+fi
+
+$argparse_shell_complete $opts "$@" fpm.py

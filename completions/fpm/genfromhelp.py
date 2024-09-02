@@ -16,7 +16,7 @@ COMPLETE = {
                        'puppet', 'python', 'rpm', 'sh', 'snap', 'solaris', 'tar',
                        'virtualenv', 'zip']},
 
-    '-C': {"complete": ['file']},
+    '-C': {"complete": ['directory']},
 
     '--log': {"choices": ['error', 'warn', 'info', 'debug']},
 
@@ -24,28 +24,69 @@ COMPLETE = {
 
     '--inputs': {"complete": ['file']},
 
-    '--post-install': {"complete": ['file']},
-    '--pre-install': {"complete": ['file']},
+    '--post-install':   {"complete": ['file']},
+    '--pre-install':    {"complete": ['file']},
     '--post-uninstall': {"complete": ['file']},
-    '--pre-uninstall': {"complete": ['file']},
-    '--after-install': {"complete": ['file']},
+    '--pre-uninstall':  {"complete": ['file']},
+    '--after-install':  {"complete": ['file']},
     '--before-install': {"complete": ['file']},
-    '--after-remove': {"complete": ['file']},
-    '--before-remove': {"complete": ['file']},
-    '--after-upgrade': {"complete": ['file']},
+    '--after-remove':   {"complete": ['file']},
+    '--before-remove':  {"complete": ['file']},
+    '--after-upgrade':  {"complete": ['file']},
     '--before-upgrade': {"complete": ['file']},
 
     '--workdir': {"complete": ['directory']},
 
     '--fpm-options-file': {"complete": ['file']},
 
+    '--cpan-perl-bin':   {"complete": ["command"]},
+    '--cpan-cpanm-bin':  {"complete": ["command"]},
+
+    '--deb-custom-control':     {"complete": ['file']},
+    '--deb-config':             {"complete": ['file']},
+    '--deb-templates':          {"complete": ['file']},
+    '--deb-changelog':          {"complete": ['file']},
+    '--deb-upstream-changelog': {"complete": ['file']},
+    '--deb-meta-file':          {"complete": ['file']},
+    '--deb-init':               {"complete": ['file']},
+    '--deb-default':            {"complete": ['file']},
+    '--deb-upstart':            {"complete": ['file']},
+    '--deb-systemd':            {"complete": ['file']},
+    '--deb-after-purge':        {"complete": ['file']},
+    '--deb-compression':        {"choices": ['gz','bzip2','xz','none']},
+    '--deb-user':               {"complete": ['user']},
+    '--deb-group':              {"complete": ['group']},
+
+    '--npm-bin': {"complete": ["command"]},
+
+    '--rpm-changelog':          {"complete": ['file']},
+    '--rpm-init':               {"complete": ['file']},
+    '--rpm-verifyscript':       {"complete": ['file']},
+    '--rpm-pretrans':           {"complete": ['file']},
+    '--rpm-posttrans':          {"complete": ['file']},
     '--rpm-digest': {"choices":  ['md5','sha1','sha256','sha384','sha512']},
-
     '--rpm-compression-level': {"choices": range(0, 10)},
-
     '--rpm-compression': {"choices": ['none','xz','xzmt','gzip','bzip2']},
+    '--rpm-user':  {"complete": ['user']},
+    '--rpm-group': {"complete": ['group']},
+
+    '--python-bin':                 {'complete': ['command']},
+    '--python-easyinstall':         {'complete': ['command']},
+    '--python-pip':                 {'complete': ['command']},
+    '--python-scripts-executable':  {'complete': ['command']},
 
     '--osxpkg-postinstall-action': {'choices': ['logout', 'restart', 'shutdown']},
+
+    '--solaris-user':  {"complete": ['user']},
+    '--solaris-group': {"complete": ['group']},
+
+    '--snap-yaml': {'complete': ['file']},
+
+    '--pacman-compression': {"choices": ['gz','bzip2','xz','zstd','none']},
+    '--pacman-user':  {"complete": ['user']},
+    '--pacman-group': {"complete": ['group']},
+
+    '--pleaserun-chdir': {'complete': ['directory']},
 }
 
 def find_complete_by_opts(opts):
@@ -135,5 +176,6 @@ for line in lines:
         process(line)
 
 if len(COMPLETE):
-    print("Warning, not everything in COMPLETE has been consumed", file=sys.stderr)
+    print("Warning, not everything in COMPLETE has been consumed:", file=sys.stderr)
+    print(list(COMPLETE.keys()), file=sys.stderr)
 

@@ -4,7 +4,9 @@ import argparse
 
 from argparse_shell_complete import argparse_mod
 
-argp = argparse.ArgumentParser(prog='fpm', description='')
+argp = argparse.ArgumentParser(prog='fpm', description='Effing package management')
+
+argp.add_argument('FILE', nargs='+').complete('file')
 
 argp.add_argument('-t', '--output-type', metavar='OUTPUT_TYPE',
   choices=['apk', 'cpan', 'deb', 'dir', 'empty', 'freebsd', 'gem', 'npm', 'osxpkg', 'p5p', 'pacman', 'pear', 'pkgin', 'pleaserun', 'puppet', 'python', 'rpm', 'sh', 'snap', 'solaris', 'tar', 'virtualenv', 'zip'],
@@ -15,7 +17,7 @@ argp.add_argument('-s', '--input-type', metavar='INPUT_TYPE',
   help='the package type to use as input (gem, rpm, python, etc)')
 
 argp.add_argument('-C', '--chdir', metavar='CHDIR',
-  help='Change directory to here before searching for files').complete('file')
+  help='Change directory to here before searching for files').complete('directory')
 
 argp.add_argument('--prefix', metavar='PREFIX',
   help="A path to prefix files with when building the target package. This may not be necessary for all input packages. For example, the 'gem' type will prefix with your gem directory automatically.")
@@ -223,10 +225,10 @@ argp.add_argument('--gem-git-branch', metavar='GIT_BRANCH',
   help='When using a git repo as the source of the gem instead of rubygems.org, use this git branch. (default: nil)').when("option_is -t --output-type -s --input-type -- gem")
 
 argp.add_argument('--cpan-perl-bin', metavar='PERL_EXECUTABLE',
-  help='The path to the perl executable you wish to run. (default: "perl")').when("option_is -t --output-type -s --input-type -- cpan")
+  help='The path to the perl executable you wish to run. (default: "perl")').complete('command').when("option_is -t --output-type -s --input-type -- cpan")
 
 argp.add_argument('--cpan-cpanm-bin', metavar='CPANM_EXECUTABLE',
-  help='The path to the cpanm executable you wish to run. (default: "cpanm")').when("option_is -t --output-type -s --input-type -- cpan")
+  help='The path to the cpanm executable you wish to run. (default: "cpanm")').complete('command').when("option_is -t --output-type -s --input-type -- cpan")
 
 argp.add_argument('--cpan-mirror', metavar='CPAN_MIRROR',
   help='The CPAN mirror to use instead of the default.').when("option_is -t --output-type -s --input-type -- cpan")
@@ -280,19 +282,20 @@ argp.add_argument('--deb-pre-depends', metavar='DEPENDENCY',
   help='Add DEPENDENCY as a Pre-Depends').when("option_is -t --output-type -s --input-type -- deb")
 
 argp.add_argument('--deb-compression', metavar='COMPRESSION',
+  choices=['gz', 'bzip2', 'xz', 'none'],
   help='The compression type to use, must be one of gz, bzip2, xz, none. (default: "gz")').when("option_is -t --output-type -s --input-type -- deb")
 
 argp.add_argument('--deb-dist', metavar='DIST-TAG',
   help='Set the deb distribution. (default: "unstable")').when("option_is -t --output-type -s --input-type -- deb")
 
 argp.add_argument('--deb-custom-control', metavar='FILEPATH',
-  help='Custom version of the Debian control file.').when("option_is -t --output-type -s --input-type -- deb")
+  help='Custom version of the Debian control file.').complete('file').when("option_is -t --output-type -s --input-type -- deb")
 
 argp.add_argument('--deb-config', metavar='SCRIPTPATH',
-  help='Add SCRIPTPATH as debconf config file.').when("option_is -t --output-type -s --input-type -- deb")
+  help='Add SCRIPTPATH as debconf config file.').complete('file').when("option_is -t --output-type -s --input-type -- deb")
 
 argp.add_argument('--deb-templates', metavar='FILEPATH',
-  help='Add FILEPATH as debconf templates file.').when("option_is -t --output-type -s --input-type -- deb")
+  help='Add FILEPATH as debconf templates file.').complete('file').when("option_is -t --output-type -s --input-type -- deb")
 
 argp.add_argument('--deb-installed-size', metavar='KILOBYTES',
   help='The installed size, in kilobytes. If omitted, this will be calculated automatically').when("option_is -t --output-type -s --input-type -- deb")
@@ -307,13 +310,13 @@ argp.add_argument('--no-deb-use-file-permissions', action='store_true',
   help='Use existing file permissions when defining ownership and modes').when("option_is -t --output-type -s --input-type -- deb")
 
 argp.add_argument('--deb-user', metavar='USER',
-  help='The owner of files in this package (default: "root")').when("option_is -t --output-type -s --input-type -- deb")
+  help='The owner of files in this package (default: "root")').complete('user').when("option_is -t --output-type -s --input-type -- deb")
 
 argp.add_argument('--deb-group', metavar='GROUP',
-  help='The group owner of files in this package (default: "root")').when("option_is -t --output-type -s --input-type -- deb")
+  help='The group owner of files in this package (default: "root")').complete('group').when("option_is -t --output-type -s --input-type -- deb")
 
 argp.add_argument('--deb-changelog', metavar='FILEPATH',
-  help='Add FILEPATH as debian changelog').when("option_is -t --output-type -s --input-type -- deb")
+  help='Add FILEPATH as debian changelog').complete('file').when("option_is -t --output-type -s --input-type -- deb")
 
 argp.add_argument('--deb-generate-changes', action='store_true',
   help='Generate PACKAGENAME.changes file. (default: false)').when("option_is -t --output-type -s --input-type -- deb")
@@ -322,7 +325,7 @@ argp.add_argument('--no-deb-generate-changes', action='store_true',
   help='Generate PACKAGENAME.changes file. (default: false)').when("option_is -t --output-type -s --input-type -- deb")
 
 argp.add_argument('--deb-upstream-changelog', metavar='FILEPATH',
-  help='Add FILEPATH as upstream changelog').when("option_is -t --output-type -s --input-type -- deb")
+  help='Add FILEPATH as upstream changelog').complete('file').when("option_is -t --output-type -s --input-type -- deb")
 
 argp.add_argument('--deb-recommends', metavar='PACKAGE',
   help='Add PACKAGE to Recommends').when("option_is -t --output-type -s --input-type -- deb")
@@ -331,7 +334,7 @@ argp.add_argument('--deb-suggests', metavar='PACKAGE',
   help='Add PACKAGE to Suggests').when("option_is -t --output-type -s --input-type -- deb")
 
 argp.add_argument('--deb-meta-file', metavar='FILEPATH',
-  help='Add FILEPATH to DEBIAN directory').when("option_is -t --output-type -s --input-type -- deb")
+  help='Add FILEPATH to DEBIAN directory').complete('file').when("option_is -t --output-type -s --input-type -- deb")
 
 argp.add_argument('--deb-interest', metavar='EVENT',
   help='Package is interested in EVENT trigger').when("option_is -t --output-type -s --input-type -- deb")
@@ -364,16 +367,16 @@ argp.add_argument('--deb-shlibs', metavar='SHLIBS',
   help='Include control/shlibs content. This flag expects a string that is used as the contents of the shlibs file. See the following url for a description of this file and its format: http://www.debian.org/doc/debian-policy/ch-sharedlibs.html#s-shlibs').when("option_is -t --output-type -s --input-type -- deb")
 
 argp.add_argument('--deb-init', metavar='FILEPATH',
-  help='Add FILEPATH as an init script').when("option_is -t --output-type -s --input-type -- deb")
+  help='Add FILEPATH as an init script').complete('file').when("option_is -t --output-type -s --input-type -- deb")
 
 argp.add_argument('--deb-default', metavar='FILEPATH',
-  help='Add FILEPATH as /etc/default configuration').when("option_is -t --output-type -s --input-type -- deb")
+  help='Add FILEPATH as /etc/default configuration').complete('file').when("option_is -t --output-type -s --input-type -- deb")
 
 argp.add_argument('--deb-upstart', metavar='FILEPATH',
-  help='Add FILEPATH as an upstart script').when("option_is -t --output-type -s --input-type -- deb")
+  help='Add FILEPATH as an upstart script').complete('file').when("option_is -t --output-type -s --input-type -- deb")
 
 argp.add_argument('--deb-systemd', metavar='FILEPATH',
-  help='Add FILEPATH as a systemd script').when("option_is -t --output-type -s --input-type -- deb")
+  help='Add FILEPATH as a systemd script').complete('file').when("option_is -t --output-type -s --input-type -- deb")
 
 argp.add_argument('--deb-systemd-enable', action='store_true',
   help='Enable service on install or upgrade (default: false)').when("option_is -t --output-type -s --input-type -- deb")
@@ -394,7 +397,7 @@ argp.add_argument('--no-deb-systemd-restart-after-upgrade', action='store_true',
   help='Restart service after upgrade (default: true)').when("option_is -t --output-type -s --input-type -- deb")
 
 argp.add_argument('--deb-after-purge', metavar='FILE',
-  help='A script to be run after package removal to purge remaining (config) files (a.k.a. postrm purge within apt-get purge)').when("option_is -t --output-type -s --input-type -- deb")
+  help='A script to be run after package removal to purge remaining (config) files (a.k.a. postrm purge within apt-get purge)').complete('file').when("option_is -t --output-type -s --input-type -- deb")
 
 argp.add_argument('--deb-maintainerscripts-force-errorchecks', action='store_true',
   help='Activate errexit shell option according to lintian. https://lintian.debian.org/tags/maintainer-script-ignores-errors.html (default: false)').when("option_is -t --output-type -s --input-type -- deb")
@@ -403,7 +406,7 @@ argp.add_argument('--no-deb-maintainerscripts-force-errorchecks', action='store_
   help='Activate errexit shell option according to lintian. https://lintian.debian.org/tags/maintainer-script-ignores-errors.html (default: false)').when("option_is -t --output-type -s --input-type -- deb")
 
 argp.add_argument('--npm-bin', metavar='NPM_EXECUTABLE',
-  help='The path to the npm executable you wish to run. (default: "npm")').when("option_is -t --output-type -s --input-type -- npm")
+  help='The path to the npm executable you wish to run. (default: "npm")').complete('command').when("option_is -t --output-type -s --input-type -- npm")
 
 argp.add_argument('--npm-package-name-prefix', metavar='PREFIX',
   help='Name to prefix the package name with. (default: "node")').when("option_is -t --output-type -s --input-type -- npm")
@@ -418,10 +421,10 @@ argp.add_argument('--no-rpm-use-file-permissions', action='store_true',
   help='Use existing file permissions when defining ownership and modes.').when("option_is -t --output-type -s --input-type -- rpm")
 
 argp.add_argument('--rpm-user', metavar='USER',
-  help='Set the user to USER in the %files section. Overrides the user when used with use-file-permissions setting.').when("option_is -t --output-type -s --input-type -- rpm")
+  help='Set the user to USER in the %files section. Overrides the user when used with use-file-permissions setting.').complete('user').when("option_is -t --output-type -s --input-type -- rpm")
 
 argp.add_argument('--rpm-group', metavar='GROUP',
-  help='Set the group to GROUP in the %files section. Overrides the group when used with use-file-permissions setting.').when("option_is -t --output-type -s --input-type -- rpm")
+  help='Set the group to GROUP in the %files section. Overrides the group when used with use-file-permissions setting.').complete('group').when("option_is -t --output-type -s --input-type -- rpm")
 
 argp.add_argument('--rpm-defattrfile', metavar='ATTR',
   help='Set the default file mode (%defattr). (default: "-")').when("option_is -t --output-type -s --input-type -- rpm")
@@ -451,7 +454,7 @@ argp.add_argument('--rpm-os', metavar='OS',
   help="The operating system to target this rpm for. You want to set this to 'linux' if you are using fpm on OS X, for example").when("option_is -t --output-type -s --input-type -- rpm")
 
 argp.add_argument('--rpm-changelog', metavar='FILEPATH',
-  help='Add changelog from FILEPATH contents').when("option_is -t --output-type -s --input-type -- rpm")
+  help='Add changelog from FILEPATH contents').complete('file').when("option_is -t --output-type -s --input-type -- rpm")
 
 argp.add_argument('--rpm-summary', metavar='SUMMARY',
   help='Set the RPM summary. Overrides the first line on the description if set').when("option_is -t --output-type -s --input-type -- rpm")
@@ -493,7 +496,7 @@ argp.add_argument('--rpm-attr', metavar='ATTRFILE',
   help='Set the attribute for a file (%attr), e.g. --rpm-attr 750,user1,group1:/some/file').when("option_is -t --output-type -s --input-type -- rpm")
 
 argp.add_argument('--rpm-init', metavar='FILEPATH',
-  help='Add FILEPATH as an init script').when("option_is -t --output-type -s --input-type -- rpm")
+  help='Add FILEPATH as an init script').complete('file').when("option_is -t --output-type -s --input-type -- rpm")
 
 argp.add_argument('--rpm-filter-from-provides', metavar='REGEX',
   help='Set %filter_from_provides to the supplied REGEX.').when("option_is -t --output-type -s --input-type -- rpm")
@@ -523,13 +526,13 @@ argp.add_argument('--no-rpm-macro-expansion', action='store_true',
   help='install-time macro expansion in %pre %post %preun %postun scripts (see: https://rpm.org/user_doc/scriptlet_expansion.html) (default: false)').when("option_is -t --output-type -s --input-type -- rpm")
 
 argp.add_argument('--rpm-verifyscript', metavar='FILE',
-  help='a script to be run on verification').when("option_is -t --output-type -s --input-type -- rpm")
+  help='a script to be run on verification').complete('file').when("option_is -t --output-type -s --input-type -- rpm")
 
 argp.add_argument('--rpm-pretrans', metavar='FILE',
-  help='pretrans script').when("option_is -t --output-type -s --input-type -- rpm")
+  help='pretrans script').complete('file').when("option_is -t --output-type -s --input-type -- rpm")
 
 argp.add_argument('--rpm-posttrans', metavar='FILE',
-  help='posttrans script').when("option_is -t --output-type -s --input-type -- rpm")
+  help='posttrans script').complete('file').when("option_is -t --output-type -s --input-type -- rpm")
 
 argp.add_argument('--rpm-trigger-before-install', metavar='PACKAGE',
   help="'[OPT]PACKAGE: FILEPATH' Adds a rpm trigger script located in FILEPATH, having 'OPT' options and linking to 'PACKAGE'. PACKAGE can be a comma seperated list of packages. See: http://rpm.org/api/4.4.2.2/triggers.html").when("option_is -t --output-type -s --input-type -- rpm")
@@ -568,13 +571,13 @@ argp.add_argument('--pear-data-dir', metavar='DATA_DIR',
   help='Specify php dir relative to prefix if differs from pear default (pear/data)').when("option_is -t --output-type -s --input-type -- pear")
 
 argp.add_argument('--python-bin', metavar='PYTHON_EXECUTABLE',
-  help='The path to the python executable you wish to run. (default: "python")').when("option_is -t --output-type -s --input-type -- python")
+  help='The path to the python executable you wish to run. (default: "python")').complete('command').when("option_is -t --output-type -s --input-type -- python")
 
 argp.add_argument('--python-easyinstall', metavar='EASYINSTALL_EXECUTABLE',
-  help='The path to the easy_install executable tool (default: "easy_install")').when("option_is -t --output-type -s --input-type -- python")
+  help='The path to the easy_install executable tool (default: "easy_install")').complete('command').when("option_is -t --output-type -s --input-type -- python")
 
 argp.add_argument('--python-pip', metavar='PIP_EXECUTABLE',
-  help='The path to the pip executable tool. If not specified, easy_install is used instead (default: nil)').when("option_is -t --output-type -s --input-type -- python")
+  help='The path to the pip executable tool. If not specified, easy_install is used instead (default: nil)').complete('command').when("option_is -t --output-type -s --input-type -- python")
 
 argp.add_argument('--python-pypi', metavar='PYPI_URL',
   help='PyPi Server uri for retrieving packages. (default: "https://pypi.python.org/simple")').when("option_is -t --output-type -s --input-type -- python")
@@ -634,7 +637,7 @@ argp.add_argument('--no-python-obey-requirements-txt', action='store_true',
   help='Use a requirements.txt file in the top-level directory of the python package for dependency detection. (default: false)').when("option_is -t --output-type -s --input-type -- python")
 
 argp.add_argument('--python-scripts-executable', metavar='PYTHON_EXECUTABLE',
-  help="Set custom python interpreter in installing scripts. By default distutils will replace python interpreter in installing scripts (specified by shebang) with current python interpreter (sys.executable). This option is equivalent to appending 'build_scripts --executable PYTHON_EXECUTABLE' arguments to 'setup.py install' command.").when("option_is -t --output-type -s --input-type -- python")
+  help="Set custom python interpreter in installing scripts. By default distutils will replace python interpreter in installing scripts (specified by shebang) with current python interpreter (sys.executable). This option is equivalent to appending 'build_scripts --executable PYTHON_EXECUTABLE' arguments to 'setup.py install' command.").complete('command').when("option_is -t --output-type -s --input-type -- python")
 
 argp.add_argument('--python-disable-dependency', metavar='PYTHON_PACKAGE_NAME',
   help='The python package name to remove from dependency list (default: [])').when("option_is -t --output-type -s --input-type -- python")
@@ -668,10 +671,10 @@ argp.add_argument('--osxpkg-dont-obsolete', metavar='DONT_OBSOLETE_PATH',
   help="A file path for which to 'dont-obsolete' in the built PackageInfo. Can be specified multiple times.").when("option_is -t --output-type -s --input-type -- osxpkg").set_multiple_option()
 
 argp.add_argument('--solaris-user', metavar='USER',
-  help='Set the user to USER in the prototype files. (default: "root")').when("option_is -t --output-type -s --input-type -- solaris")
+  help='Set the user to USER in the prototype files. (default: "root")').complete('user').when("option_is -t --output-type -s --input-type -- solaris")
 
 argp.add_argument('--solaris-group', metavar='GROUP',
-  help='Set the group to GROUP in the prototype file. (default: "root")').when("option_is -t --output-type -s --input-type -- solaris")
+  help='Set the group to GROUP in the prototype file. (default: "root")').complete('group').when("option_is -t --output-type -s --input-type -- solaris")
 
 argp.add_argument('--p5p-user', metavar='USER',
   help='Set the user to USER in the prototype files. (default: "root")').when("option_is -t --output-type -s --input-type -- p5p")
@@ -701,7 +704,7 @@ argp.add_argument('--freebsd-origin', metavar='ABI',
   help='Sets the FreeBSD \'origin\' pkg field (default: "fpm/<name>")').when("option_is -t --output-type -s --input-type -- freebsd")
 
 argp.add_argument('--snap-yaml', metavar='FILEPATH',
-  help='Custom version of the snap.yaml file.').when("option_is -t --output-type -s --input-type -- snap")
+  help='Custom version of the snap.yaml file.').complete('file').when("option_is -t --output-type -s --input-type -- snap")
 
 argp.add_argument('--snap-confinement', metavar='CONFINEMENT',
   help='Type of confinement to use for this snap. (default: "devmode")').when("option_is -t --output-type -s --input-type -- snap")
@@ -719,19 +722,20 @@ argp.add_argument('--no-pacman-use-file-permissions', action='store_true',
   help='Use existing file permissions when defining ownership and modes').when("option_is -t --output-type -s --input-type -- pacman")
 
 argp.add_argument('--pacman-user', metavar='USER',
-  help='The owner of files in this package (default: "root")').when("option_is -t --output-type -s --input-type -- pacman")
+  help='The owner of files in this package (default: "root")').complete('user').when("option_is -t --output-type -s --input-type -- pacman")
 
 argp.add_argument('--pacman-group', metavar='GROUP',
-  help='The group owner of files in this package (default: "root")').when("option_is -t --output-type -s --input-type -- pacman")
+  help='The group owner of files in this package (default: "root")').complete('group').when("option_is -t --output-type -s --input-type -- pacman")
 
 argp.add_argument('--pacman-compression', metavar='COMPRESSION',
+  choices=['gz', 'bzip2', 'xz', 'zstd', 'none'],
   help='The compression type to use, must be one of gz, bzip2, xz, zstd, none. (default: "zstd")').when("option_is -t --output-type -s --input-type -- pacman")
 
 argp.add_argument('--pleaserun-name', metavar='SERVICE_NAME',
   help='The name of the service you are creating').when("option_is -t --output-type -s --input-type -- pleaserun")
 
 argp.add_argument('--pleaserun-chdir', metavar='CHDIR',
-  help='The working directory used by the service').when("option_is -t --output-type -s --input-type -- pleaserun")
+  help='The working directory used by the service').complete('directory').when("option_is -t --output-type -s --input-type -- pleaserun")
 
 argp.add_argument('--pleaserun-user', metavar='USER',
   help='The user to use for executing this program.').when("option_is -t --output-type -s --input-type -- pleaserun")
