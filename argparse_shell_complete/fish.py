@@ -127,7 +127,7 @@ class Conditions:
 
     def add(self, condition):
         if condition in self.condition_to_guard:
-            return self.condition_to_guard[condition]
+            return '$%s' % self.condition_to_guard[condition]
 
         condition_guard = 'guard%03d' % self.counter
         self.condition_to_guard[condition] = condition_guard
