@@ -54,6 +54,9 @@ p.add_argument('--zsh-compdef', default=True, type=parse_bool,
 p.add_argument('--include-file', action='append',
                help='Include file in output').complete('file')
 
+p.add_argument('--debug', action='store_true',
+               help='Enable debug mode')
+
 grp = p.add_mutually_exclusive_group()
 
 grp.add_argument('-o', '--output', default=None,
@@ -213,4 +216,8 @@ if __name__ == '__main__':
         generate(opts)
     except Exception as e:
         print('%s: %s' % (type(e).__name__, e), file=sys.stderr)
-        sys.exit(1)
+        if opts.debug:
+            raise
+        else:
+            print('Pass --debug to see full stack trace', file=sys.stderr)
+            sys.exit(1)
