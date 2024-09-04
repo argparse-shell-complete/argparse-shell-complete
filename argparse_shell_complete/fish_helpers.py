@@ -64,7 +64,9 @@ set -e argv[1]
 set -l cmd $argv[1]
 set -e argv[1]
 
-if test "$__CACHE_KEY" = (commandline -b)
+set -l my_cache_key "$(commandline -b) $options"
+
+if test "$__CACHE_KEY" = "$my_cache_key"
   set positionals    $__CACHE_POSITIONALS
   set having_options $__CACHE_HAVING_OPTIONS
   set option_values  $__CACHE_OPTION_VALUES
@@ -230,7 +232,7 @@ else
   set -g __CACHE_POSITIONALS    $positionals
   set -g __CACHE_HAVING_OPTIONS $having_options
   set -g __CACHE_OPTION_VALUES  $option_values
-  set -g __CACHE_KEY            (commandline -b)
+  set -g __CACHE_KEY            $my_cache_key
 end
 
 # ===========================================================================

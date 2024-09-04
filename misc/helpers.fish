@@ -46,6 +46,7 @@ functions fish_helper
   set -l having_options
   set -l option_values
 
+#if DEBUG
   switch (count $argv)
     case 0
       echo "$func: missing OPTIONS argument" >&2
@@ -54,6 +55,7 @@ functions fish_helper
       echo "$func: missing COMMAND" >&2
       return 1
   end
+#endif
 
   set -l options $argv[1]
   set -e argv[1]
@@ -61,7 +63,9 @@ functions fish_helper
   set -l cmd $argv[1]
   set -e argv[1]
 
-  if test "$__CACHE_KEY" = (commandline -b)
+  set -l my_cache_key "$(commandline -b) $options"
+
+  if test "$__CACHE_KEY" = "$my_cache_key"
     set positionals    $__CACHE_POSITIONALS
     set having_options $__CACHE_HAVING_OPTIONS
     set option_values  $__CACHE_OPTION_VALUES
@@ -227,7 +231,7 @@ functions fish_helper
     set -g __CACHE_POSITIONALS    $positionals
     set -g __CACHE_HAVING_OPTIONS $having_options
     set -g __CACHE_OPTION_VALUES  $option_values
-    set -g __CACHE_KEY            (commandline -b)
+    set -g __CACHE_KEY            $my_cache_key
   end
 
   # ===========================================================================
@@ -235,6 +239,7 @@ functions fish_helper
   # ===========================================================================
 
   switch $cmd
+#if POSITIONAL_CONTAINS
     case 'positional_contains'
       if test (count $argv) -eq 0
         echo "$func: positional_contains: argv[3]: missing number" >&2
@@ -244,12 +249,16 @@ functions fish_helper
       set -l positional_num $argv[1]
       set -e argv[1]
       contains -- $positionals[$positional_num] $argv && return 0 || return 1
+#endif
+#if HAS_OPTION
     case 'has_option'
       for option in $having_options
         contains -- $option $argv && return 0
       end
 
       return 1
+#endif
+#if NUM_OF_POSITIONALS
     case 'num_of_positionals'
       switch (count $argv)
         case 0
@@ -268,6 +277,8 @@ functions fish_helper
           echo "$func: num_of_positionals: too many arguments" >&2
           return 1
       end
+#endif
+#if OPTION_IS
     case 'option_is'
       set -l options
       set -l values
@@ -300,9 +311,12 @@ functions fish_helper
       end
 
       return 1
+#endif
+#if DEBUG
     case '*'
       echo "$func: argv[2]: invalid command" >&2
       return 1
+#endif
   end
 end
 
