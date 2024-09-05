@@ -711,4 +711,109 @@ first1  first2  first3\
 '''
 },
 
+{
+ 'number': 36,
+ 'description': 'complete: Check --exec',
+ 'send': 'argparse-shell-complete-test complete --exec ',
+ 'bash_expected': '''\
+> argparse-shell-complete-test complete --exec
+Item\\ 1  Item\\ 2
+> argparse-shell-complete-test complete --exec Item\\\
+''',
+ 'fish_expected': '''\
+> argparse-shell-complete-test complete --exec Item\\
+Item 1  (Description 1)  Item 2  (Description 2)\
+''',
+ 'zsh_expected': '''\
+> argparse-shell-complete-test complete --exec Item\\\
+'''
+},
+
+{
+ 'number': 37,
+ 'description': 'complete: Check --choices',
+ 'send': 'argparse-shell-complete-test complete --choices ',
+ 'bash_expected': '''\
+> argparse-shell-complete-test complete --choices
+1        2        foo:bar
+> argparse-shell-complete-test complete --choices\
+''',
+ 'fish_expected': '''\
+> argparse-shell-complete-test complete --choices
+1  (one)  2  (two)  foo:bar  (Description for foo:bar)\
+''',
+ 'zsh_expected': '''\
+> argparse-shell-complete-test complete --choices
+1        -- one
+2        -- two
+foo:bar  -- Description for foo:bar\
+'''
+},
+
+{
+ 'number': 38,
+ 'description': 'complete: Check --value-list #1',
+ 'send': 'argparse-shell-complete-test complete --value-list ',
+ 'bash_expected': '''\
+> argparse-shell-complete-test complete --value-list
+bar  baz  foo
+> argparse-shell-complete-test complete --value-list\
+''',
+ 'fish_expected': '''\
+> argparse-shell-complete-test complete --value-list
+bar  (Complete a list)  baz  (Complete a list)  foo  (Complete a list)\
+''',
+ 'zsh_expected': '''\
+> argparse-shell-complete-test complete --value-list
+bar  baz  foo\
+'''
+},
+
+{
+ 'number': 39,
+ 'description': 'complete: Check --value-list #2',
+ 'send': 'argparse-shell-complete-test complete --value-list f',
+ 'bash_expected': '''\
+> argparse-shell-complete-test complete --value-list foo\
+''',
+ 'fish_expected': '''\
+> argparse-shell-complete-test complete --value-list foo\
+''',
+ 'zsh_expected': '''\
+> argparse-shell-complete-test complete --value-list foo,\
+'''
+},
+
+{
+ 'number': 40,
+ 'description': 'complete: Check --value-list #3',
+ 'send': 'argparse-shell-complete-test complete --value-list foo',
+ 'bash_expected': '''\
+> argparse-shell-complete-test complete --value-list foo\
+''',
+ 'fish_expected': '''\
+> argparse-shell-complete-test complete --value-list foo\
+''',
+ 'zsh_expected': '''\
+> argparse-shell-complete-test complete --value-list foo,\
+'''
+},
+
+{
+ 'number': 41,
+ 'description': 'complete: Check --value-list #4',
+ 'send': 'argparse-shell-complete-test complete --value-list foo,baz,',
+ 'bash_expected': '''\
+> argparse-shell-complete-test complete --value-list foo,baz,bar\
+''',
+ 'fish_expected': '''\
+> argparse-shell-complete-test complete --value-list foo,baz,
+foo,baz,bar  (Complete a list)  foo,baz,foo  (Complete a list)
+foo,baz,baz  (Complete a list)\
+''',
+ 'zsh_expected': '''\
+> argparse-shell-complete-test complete --value-list foo,baz,bar,\
+'''
+},
+
 ]

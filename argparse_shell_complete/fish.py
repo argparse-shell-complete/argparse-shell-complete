@@ -116,6 +116,21 @@ class FishCompleter(shell.ShellCompleter):
     def exec(self, ctxt, command):
         return FishCompletionCommand(command)
 
+    def value_list(self, ctxt, opts):
+        separator = opts.get('separator', ',')
+
+        funcname = shell.make_completion_funcname_for_context(ctxt)
+        code = 'printf "%s\\n" \\\n'
+        for value in opts['values']:
+            code += '  %s \\\n' % shell.escape(str(value))
+        code = code.rstrip(' \\\n')
+
+        ctxt.helpers.add_function(helpers.FishFunction(funcname, code))
+        funcname = ctxt.helpers.use_function(funcname)
+
+        cmd = '__fish_complete_list %s %s' % (shell.escape(separator), funcname)
+        return FishCompletionCommand(cmd)
+
 # =============================================================================
 # Helper function for creating a `complete` command in fish
 # =============================================================================

@@ -33,7 +33,8 @@ cmdp.add_argument('--signal',           help='Complete a signal').complete('sign
 cmdp.add_argument('--hostname',         help='Complete a hostname').complete('hostname')
 cmdp.add_argument('--variable',         help='Complete a variable').complete('variable')
 cmdp.add_argument('--service',          help='Complete a service').complete('service')
-cmdp.add_argument('--choices',          help='Complete from choices', choices={'foo:bar': 'Description for foo:bar', 1:2, 3:4})
+cmdp.add_argument('--choices',          help='Complete from choices', choices={'foo:bar': 'Description for foo:bar', 1:'one', 2:'two'})
+cmdp.add_argument('--value-list',       help='Complete a list').complete('value_list', {'values': ['foo', 'bar', 'baz']})
 cmdp.add_argument('--range',            help='Complete a range', type=int, choices=range(1,9,2))
 
 # =============================================================================
@@ -48,6 +49,7 @@ cmdp.add_argument('--if-var-is-foo', help='Only show option if --var is foo or b
 cmdp.add_argument('--if-optional', help='Only show option if --optional is given').when('has_option --optional -optional -O')
 cmdp.add_argument('--if-optional-is-foo', help='Only show option if --optional is foo').when('option_is --optional -optional -O -- foo')
 
+#cmdp.add_argument('--if-var-or-optional-is-foo').when('option_is --var --optional -- foo')
 #cmdp.add_argument('--if-not-var', help='Only show option if --var is not given').when('not_has_option --var -v')
 
 # =============================================================================

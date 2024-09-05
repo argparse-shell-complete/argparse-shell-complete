@@ -95,7 +95,7 @@ class BashCompletionCompgen(BashCompletionBase):
             self.word)
 
 class BashCompleter(shell.ShellCompleter):
-    def none(self, ctxt):
+    def none(self, ctxt, *a):
         return BashCompletionCommand(ctxt, '')
 
     def choices(self, ctxt, choices):
@@ -168,6 +168,13 @@ class BashCompleter(shell.ShellCompleter):
     def exec(self, ctxt, command):
         funcname = ctxt.helpers.use_function('exec')
         return BashCompletionCommand(ctxt, '%s %s' % (funcname, shell.escape(command)))
+
+    def value_list(self, ctxt, opts):
+        funcname = ctxt.helpers.use_function('value_list')
+        return BashCompletionCommand(ctxt, '%s %s %s' % (
+            funcname,
+            shell.escape(opts.get('separator', ',')),
+            ' '.join(shell.escape(v) for v in opts['values'])))
 
 # =============================================================================
 # Code for generating BASH auto completion scripts

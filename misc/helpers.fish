@@ -1,6 +1,6 @@
 #!/bin/fish
 
-functions fish_helper
+function __fish_helper
   # ===========================================================================
   #
   # This function implements the parsing of options and positionals in the Fish shell.
@@ -367,6 +367,61 @@ function __fish_complete_filedir -d "Complete files or directories"
   end
 end
 
+function simple_values
+  set -l SEPARATOR $argv[1]
+  set -e argv[1]
+  set -l VALUES $argv
+
+  set -l cmdline (commandline -po)
+  set -l cur $cmdline[(count $cmdline)]
+
+  set -S cmdline cur >> /tmp/trace
+
+  set -l VALUE
+  set -l c (commandline -b)
+
+  if test (string sub -s -1 -l 1 -- $c) = ' '
+    for VALUE in $VALUES
+      printf "%s\n" $VALUE
+    end
+    return
+  end
+
+  set -l HAVING_VALUES (string split -- $SEPARATOR $cur)
+  set -l REMAINING_VALUES
+  set -l HAVING_VALUE
+
+  for VALUE in $VALUES
+    set -l FOUND_VALUE false
+
+    for HAVING_VALUE in $HAVING_VALUES
+      echo "test '$VALUE' = '$HAVING_VALUE'" >> /tmp/trace
+      if test $VALUE = $HAVING_VALUE
+        set FOUND_VALUE true
+        break
+      end
+    end
+
+    if ! $FOUND_VALUE
+      set -a REMAINING_VALUES $VALUE
+    end
+  end
+
+  if string match -q -r -- $SEPARATOR'$' $cur # TODO
+    for VALUE in $REMAINING_VALUES
+      printf "%s%s\n" $cur $VALUE
+    end
+  else if test (count $HAVING_VALUES) -gt 0
+    set CUR_LAST_VALUE $HAVING_VALUES[-1]
+
+    for VALUE in $REMAINING_VALUES
+      if string match -q -- $CUR_LAST_VALUE'*' $VALUE
+        printf "%s\n" $VALUE
+      end
+    end
+  end
+end
+
 # =============================================================================
 # Test code
 # =============================================================================
@@ -383,3 +438,5 @@ complete -c foo -l dirs       -x -a '(__fish_complete_filedir -D)'
 complete -c foo -l temp-files -x -a '(__fish_complete_filedir -C /tmp)'
 complete -c foo -l temp-dirs  -x -a '(__fish_complete_filedir -D -C /tmp)'
 complete -c foo -l desc-files -x -a '(__fish_complete_filedir -d Foo)'
+
+complete -c foo -l simple-values -x -a '(simple_values , foo bar baz)'

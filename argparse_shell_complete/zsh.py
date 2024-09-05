@@ -84,6 +84,12 @@ class ZshCompleter(shell.ShellCompleter):
         funcname = ctxt.helpers.use_function('exec')
         return shell.escape('{%s %s}' % (funcname, shell.escape(command)))
 
+    def value_list(self, ctxt, opts):
+        values = ' '.join(shell.escape(i) for i in opts['values'])
+        descr = ctxt.option.metavar or ''
+        cmd = '_values -s %s %s %s' % (shell.escape(opts.get('separator', ',')), descr, values)
+        return shell.escape(cmd)
+
 def escape_colon(s):
     return s.replace(':', '\\:')
 
