@@ -59,6 +59,7 @@ class CommandLine():
             help='',
             complete=None,
             takes_args=True,
+            group=None,
             multiple_option=ExtendedBool.INHERIT,
             when=None):
         '''
@@ -82,6 +83,7 @@ class CommandLine():
                    help=help,
                    complete=complete,
                    takes_args=takes_args,
+                   group=group,
                    multiple_option=multiple_option,
                    when=when)
         self.options.append(o)
@@ -248,7 +250,6 @@ class CommandLine():
         Make a copy of the current CommandLine object, including sub-objects.
         '''
         copy = CommandLine(self.prog, help=self.help, parent=parent)
-        groups = defaultdict(list)
 
         for option in self.options:
             o = copy.add_option(
@@ -257,12 +258,10 @@ class CommandLine():
                 help = option.help,
                 complete = option.complete,
                 takes_args = option.takes_args,
+                group = option.group,
                 multiple_option = option.multiple_option,
                 when = option.when
             )
-
-            if option.group is not None:
-                groups[id(option.group)].append(o)
 
         for positional in self.positionals:
             copy.add_positional(
@@ -271,11 +270,6 @@ class CommandLine():
                 complete = positional.complete,
                 when = positional.when
             )
-
-        for group, options in groups.items():
-            new_group = MutuallyExclusiveGroup(copy)
-            for o in options:
-                new_group.add_option(o)
 
         if self.subcommands is not None:
             subcommands_option = copy.add_subcommands(self.subcommands.metavar, self.subcommands.help)
@@ -358,7 +352,7 @@ class Option:
             metavar='',
             help='',
             complete=None,
-            exclusive_group=None,
+            group=None,
             takes_args=True,
             multiple_option=ExtendedBool.INHERIT,
             when=None):
@@ -366,7 +360,7 @@ class Option:
         self.option_strings = option_strings
         self.metavar = metavar
         self.help = help
-        self.group = exclusive_group
+        self.group = group
         self.takes_args = takes_args
         self.multiple_option = multiple_option
         self.when = when
@@ -434,9 +428,12 @@ class Option:
         '''
         if not self.group:
             return []
-        options = list(self.group.options)
-        options.remove(self)
-        return options
+        r = []
+        for option in self.parent.options:
+            if option.group == self.group:
+                r.append(option)
+        r.remove(self)
+        return r
 
     def get_conflicting_option_strings(self):
         '''
@@ -450,21 +447,7 @@ class Option:
             option_strings.extend(option.get_option_strings())
         return option_strings
 
-    def equals(self, other, compare_group=True):
-        '''
-        Checks if the current option is equal to another option.
-
-        Args:
-            other (object): The other object to compare with.
-            compare_group (bool): If True, compare the option's group attribute.
-
-        Notes:
-            The `compare_group` option is used to avoid recursive comparisions
-            inside `MutuallyExclusiveGroup.__eq__`.
-
-        Returns:
-            bool: True if the objects are equal, False otherwise.
-        '''
+    def equals(self, other):
         return (
             isinstance(other, Option) and
             self.option_strings  == other.option_strings and
@@ -473,10 +456,10 @@ class Option:
             self.takes_args      == other.takes_args and
             self.multiple_option == other.multiple_option and
             self.complete        == other.complete and
-            (compare_group is False or (self.group == other.group))
+            self.group           == other.group
         )
 
-    def __eq__(self, other):
+    def __eq__(self, other): # TODO: drop eequals?
         return self.equals(other)
 
     def __repr__(self):
@@ -516,11 +499,11 @@ class SubCommandsOption(Positional):
             self.help, self.subcommands)
 
 class MutuallyExclusiveGroup:
-    def __init__(self, parent):
+    def __init__(self, parent, group):
         assert isinstance(parent, CommandLine), "MutuallyExclusiveGroup: parent: expected CommandLine, got %r" % parent
 
         self.parent = parent
-        self.options = []
+        self.group = group
 
     def add(self,
             option_strings,
@@ -530,29 +513,19 @@ class MutuallyExclusiveGroup:
             takes_args=True,
             multiple_option=ExtendedBool.INHERIT):
         ''' Creates and adds a new option '''
-        # TODO
-        # assert isinstance(multiple_option, ExtendedBool), "MutuallyExclusiveGroup.add: multiple_option: expected ExtendedBool, got %r" % multiple_option
-
-        option = Option(self.parent, option_strings, exclusive_group=self,
-                        metavar=metavar, help=help, complete=complete,
-                        takes_args=takes_args, multiple_option=multiple_option)
-        self.options.append(option)
-        self.parent.options.append(option)
+        return self.parent.add_option(
+            option_strings,
+            metavar=metavar,
+            help=help,
+            complete=complete,
+            takes_args=takes_args,
+            group=self.group,
+            multiple_option=multiple_option)
 
     def add_option(self, option):
         ''' Adds an option object '''
-        self.options.append(option)
         option.parent = self.parent
-        option.group = self
-
-    def __eq__(self, other):
-        if not isinstance(other, MutuallyExclusiveGroup):
-            return False
-
-        for a, b in zip(self.options, other.options):
-            if not a.equals(b, compare_group=False):
-                return False
-        return True
+        option.group = self.group
 
 def JSON_To_Commandline(json):
     def find_CommandLine_by_id(list, id):
@@ -796,8 +769,12 @@ def ArgumentParser_to_CommandLine(parser, prog=None, description=None):
                 when=get_when(action)
             )
 
+    group_counter = 0
     for group in parser._mutually_exclusive_groups:
-        exclusive_group = MutuallyExclusiveGroup(commandline)
+        group_counter += 1
+        group_name = 'group%d' % group_counter
+
+        exclusive_group = MutuallyExclusiveGroup(commandline, group_name)
         for action in group._group_actions:
             for option in commandline.get_options():
                 for option_string in action.option_strings:
