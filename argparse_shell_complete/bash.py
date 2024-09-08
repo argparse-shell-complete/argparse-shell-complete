@@ -640,8 +640,10 @@ __is_oldstyle_option() {
             r += '  %d)\n'  % positional.get_positional_num()
             r += '%s;;\n'     % utils.indent(self._complete_action(positional), 4)
         if self.subcommands:
+            cmds = [p.prog for p in self.subcommands.subcommands]
+            complete = self.completer.choices(self.ctxt, cmds).get_command()
             r += '  %d)\n' % self.subcommands.get_positional_num()
-            r += '%s;;\n'    % utils.indent(self._complete_action(self.subcommands), 4)
+            r += '%s;;\n'    % utils.indent(complete, 4)
         r += 'esac'
         return r
 
@@ -655,13 +657,14 @@ __is_oldstyle_option() {
 
         r  = 'if (( %i < POSITIONAL_NUM )); then\n' % (self.subcommands.get_positional_num() - 1)
         r += '  case "${POSITIONALS[%i]}" in\n' % (self.subcommands.get_positional_num() - 1)
-        for name, parser in self.subcommands.subcommands.items():
+        for subcommand in self.subcommands.subcommands:
+            name = subcommand.prog
             pattern = '|'.join([shell.escape(n) for n in abbrevs.get_abbreviations(name)])
 
             if self.commandline.inherit_options:
-                r += '    %s) %s && return 0;;\n' % (pattern, shell.make_completion_funcname(parser))
+                r += '    %s) %s && return 0;;\n' % (pattern, shell.make_completion_funcname(subcommand))
             else:
-                r += '    %s) %s && return 0 || return 1;;\n' % (pattern, shell.make_completion_funcname(parser))
+                r += '    %s) %s && return 0 || return 1;;\n' % (pattern, shell.make_completion_funcname(subcommand))
         r += '  esac\n'
         r += 'fi'
         return r

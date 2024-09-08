@@ -16,72 +16,6 @@ class ExtendedBool():
     FALSE   = False
     INHERIT = 'inherit'
 
-class OptionStrings(list):
-    '''A custom list class for storing options or positional arguments.'''
-
-    def __init__(self, option_strings):
-        '''
-        Initializes an OptionStrings instance.
-
-        Arguments:
-            option_strings: Either a string with options delimitied by '|',
-                for example '--option|-o', or a list of options.
-
-        Raises:
-            Exception:
-                - If list is empty ([])
-                - If an option is empty ('')
-                - If an option cointains spaces
-                - If options (--option) and positional arguments ('positional') are mixed
-                - If more than one positional argument was passed
-        '''
-        if isinstance(option_strings, str):
-            super().__init__(option_strings.split('|'))
-        else:
-            super().__init__(option_strings)
-
-        if len(self) == 0:
-            raise Exception('Empty option strings')
-
-        num_options = 0
-        num_positionals = 0
-        for option_string in self:
-            if option_string == '':
-                raise Exception('Empty option string')
-            elif ' ' in option_string or '\t' in option_string:
-                raise Exception('Option string contains spaces')
-            elif option_string.startswith('-'):
-                num_options += 1
-            else:
-                num_positionals += 1
-
-        if num_positionals and num_options:
-            raise Exception('Positional arguments and options cannot be mixed: %r' % self)
-
-        if num_positionals > 1:
-            raise Exception('Can only store one positional argument: %r' % self)
-
-    def is_positional(self):
-        '''
-        Checks if OptionStrings instance holds a positional argument.
-
-        Returns:
-            bool: True if instance holds a positional argument, False otherwise.
-        '''
-        return not self[0].startswith('-')
-
-    def is_option(self):
-        '''
-        Checks if OptionStrings instance holds one or more options.
-
-        Returns:
-            bool: True if instance holds one or more option, False otherwise.
-        '''
-        return self[0].startswith('-')
-
-    def __repr__(self):
-        return 'OptionStrings(%r)' % list(self)
-
 class CommandLine():
     '''
     Represents a command line interface with options, positionals, and subcommands.
@@ -119,13 +53,46 @@ class CommandLine():
         self.positionals = []
         self.subcommands = None
 
-    def add(self,
+    def add_option(self,
             option_strings,
             metavar='',
             help='',
             complete=None,
             takes_args=True,
             multiple_option=ExtendedBool.INHERIT,
+            when=None):
+        '''
+        Adds a new option to the command line.
+
+        Args:
+            option_strings (list of str): The list of option strings.
+            metavar (str): The metavar for the option.
+            help (str): The help message for the option.
+            complete (tuple): The completion specification for the option.
+            takes_args (bool): Specifies if the option takes arguments.
+            multiple_option (ExtendedBool): Specifies if the option can be repeated.
+
+        Returns:
+            Option: The newly added option object.
+        '''
+
+        o = Option(self,
+                   option_strings,
+                   metavar=metavar,
+                   help=help,
+                   complete=complete,
+                   takes_args=takes_args,
+                   multiple_option=multiple_option,
+                   when=when)
+        self.options.append(o)
+        return o
+
+    def add_positional(self,
+            #positional_number,
+            metavar='',
+            help='',
+            complete=None,
+            #takes_args=True,
             when=None):
         '''
         Adds a new option or positional argument to the command line.
@@ -142,13 +109,13 @@ class CommandLine():
             Option: The newly added option object.
         '''
 
-        option = Option(self, option_strings, metavar=metavar, help=help, complete=complete, takes_args=takes_args, multiple_option=multiple_option, when=when)
-        if option.option_strings.is_option():
-            self.options.append(option)
-        else:
-            self.positionals.append(option)
-
-        return option
+        p = Positional(self,
+                       metavar=metavar,
+                       help=help,
+                       complete=complete,
+                       when=when)
+        self.positionals.append(p)
+        return p
 
     def add_mutually_exclusive_group(self):
         '''
@@ -283,8 +250,8 @@ class CommandLine():
         copy = CommandLine(self.prog, help=self.help, parent=parent)
         groups = defaultdict(list)
 
-        for option in chain(self.options, self.positionals):
-            o = copy.add(
+        for option in self.options:
+            o = copy.add_option(
                 option.option_strings,
                 metavar = option.metavar,
                 help = option.help,
@@ -297,14 +264,22 @@ class CommandLine():
             if option.group is not None:
                 groups[id(option.group)].append(o)
 
+        for positional in self.positionals:
+            copy.add_positional(
+                metavar = positional.metavar,
+                help = positional.help,
+                complete = positional.complete,
+                when = positional.when
+            )
+
         for group, options in groups.items():
             new_group = MutuallyExclusiveGroup(copy)
             for o in options:
                 new_group.add_option(o)
 
         if self.subcommands is not None:
-            subcommands_option = copy.add_subcommands(self.subcommands.option_strings[0])
-            for subparser in self.subcommands.subcommands.values():
+            subcommands_option = copy.add_subcommands(self.subcommands.metavar, self.subcommands.help)
+            for subparser in self.subcommands.subcommands:
                 subcommands_option.add_commandline_object(subparser.copy())
 
         return copy
@@ -315,6 +290,8 @@ class CommandLine():
             self.prog                == other.prog and
             self.help                == other.help and
             self.abbreviate_commands == other.abbreviate_commands and
+            self.abbreviate_options  == other.abbreviate_options and
+            self.inherit_options     == other.inherit_options and
             self.options             == other.options and
             self.positionals         == other.positionals and
             self.subcommands         == other.subcommands
@@ -323,6 +300,55 @@ class CommandLine():
     def __repr__(self):
         return '{\nprog: %r,\nhelp: %r,\nabbreviate_commands: %r,\noptions: %r,\npositionals: %r,\nsubcommands: %r}' % (
             self.prog, self.help, self.abbreviate_commands, self.options, self.positionals, self.subcommands)
+
+class Positional:
+    def __init__(
+            self,
+            parent,
+            #positional_number,
+            metavar='',
+            help='',
+            complete=None,
+            #nargs
+            when=None):
+        self.parent = parent
+        self.metavar = metavar
+        self.help = help
+        #self.nargs = nargs
+        self.when = when
+
+        if complete:
+            self.complete = complete
+        else:
+            self.complete = ('none',)
+
+    def get_positional_index(self):
+        '''
+        Returns the index of the current positional argument within the current commandline, including parent commandlines.
+
+        Returns:
+            int: The index of the positional argument.
+        '''
+        positionals = []
+
+        for commandline in self.parent.get_parents(include_self=True):
+            positionals.extend(commandline.get_positionals())
+            if commandline.get_subcommands_option():
+                positionals.append(commandline.get_subcommands_option())
+
+        return positionals.index(self)
+
+    def get_positional_num(self):
+        '''
+        Returns the number of the current positional argument within the current commandline, including parent commandlines.
+
+        Note:
+            This is the same as `CommandLine.get_positional_index() + 1`.
+
+        Returns:
+            int: The number of the positional argument.
+        '''
+        return self.get_positional_index() + 1
 
 class Option:
     def __init__(
@@ -337,7 +363,7 @@ class Option:
             multiple_option=ExtendedBool.INHERIT,
             when=None):
         self.parent = parent
-        self.option_strings = OptionStrings(option_strings)
+        self.option_strings = option_strings
         self.metavar = metavar
         self.help = help
         self.group = exclusive_group
@@ -345,10 +371,23 @@ class Option:
         self.multiple_option = multiple_option
         self.when = when
 
+        if not len(option_strings):
+            raise Exception('Empty option strings')
+
+        for option_string in option_strings:
+            if ' ' in option_string:
+                raise Exception("Invalid option: %r" % option_string)
+
+            if not option_string.startswith('-'):
+                raise Exception("Invalid option: %r" % option_string)
+
         if complete:
             self.complete = complete
         else:
             self.complete = ('none',)
+
+        if not self.takes_args and self.metavar:
+            raise Exception('Option does not take an argument but has metavar set')
 
     def get_option_strings(self):
         '''
@@ -411,34 +450,6 @@ class Option:
             option_strings.extend(option.get_option_strings())
         return option_strings
 
-    def get_positional_index(self):
-        '''
-        Returns the index of the current positional argument within the current commandline, including parent commandlines.
-
-        Returns:
-            int: The index of the positional argument.
-        '''
-        positionals = []
-
-        for commandline in self.parent.get_parents(include_self=True):
-            positionals.extend(commandline.get_positionals())
-            if commandline.get_subcommands_option():
-                positionals.append(commandline.get_subcommands_option())
-
-        return positionals.index(self)
-
-    def get_positional_num(self):
-        '''
-        Returns the number of the current positional argument within the current commandline, including parent commandlines.
-
-        Note:
-            This is the same as `CommandLine.get_positional_index() + 1`.
-
-        Returns:
-            int: The number of the positional argument.
-        '''
-        return self.get_positional_index() + 1
-
     def equals(self, other, compare_group=True):
         '''
         Checks if the current option is equal to another option.
@@ -473,29 +484,22 @@ class Option:
         return '{option_strings: %r, metavar: %r, help: %r}' % (
             self.option_strings, self.metavar, self.help)
 
-class SubCommandsOption(Option):
+class SubCommandsOption(Positional):
     def __init__(self, parent, name, help):
-        self.subcommands = OrderedDict()
-        self.choices = OrderedDict()
+        self.subcommands = list()
 
         super().__init__(
             parent,
-            [name],
             metavar='command',
-            help=help,
-            complete=['choices', self.choices],
-            takes_args=True,
-            multiple_option=ExtendedBool.FALSE)
+            help=help)
 
     def add_commandline_object(self, commandline):
         commandline.parent = self.parent
-        self.subcommands[commandline.prog] = commandline
-        self.choices[commandline.prog] = commandline.help
+        self.subcommands.append(commandline)
 
     def add_commandline(self, name, help=''):
         commandline = CommandLine(name, help=help, parent=self.parent)
-        self.subcommands[commandline.prog] = commandline
-        self.choices[commandline.prog] = commandline.help
+        self.subcommands.append(commandline)
         return commandline
 
     def __eq__(self, other):
@@ -503,7 +507,7 @@ class SubCommandsOption(Option):
             isinstance(other, SubCommandsOption) and
             self.subcommands    == other.subcommands and
             self.help           == other.help and
-            self.option_strings == other.option_strings and
+            self.metavar        == other.metavar and
             self.complete       == other.complete
         )
 
@@ -678,18 +682,11 @@ def ArgumentParser_to_CommandLine(parser, prog=None, description=None):
         CommandLine: A CommandLine object representing the converted parser.
     '''
 
-    def get_option_strings(action):
-        # parser.add_argument('foo') results in empty option_strings
-        if len(action.option_strings) >= 1:
-            return action.option_strings
-        else:
-            return [action.dest]
-
     def get_multiple_option(action):
-        if hasattr(action, 'multiple_option'):
-            return action.multiple_option
-        else:
-            return ExtendedBool.INHERIT
+        return getattr(action, 'multiple_option', ExtendedBool.INHERIT)
+
+    def get_when(action):
+        return getattr(action, 'condition', None)
 
     def get_takes_args(action):
         # TODO...
@@ -710,19 +707,11 @@ def ArgumentParser_to_CommandLine(parser, prog=None, description=None):
             return True
         raise
 
-    if not description:
-        description = parser.description
-
-    if not prog:
-        prog = parser.prog
-
-    commandline = CommandLine(prog, description)
-
-    for action in parser._actions:
+    def get_complete(action):
         if isinstance(action, argparse._HelpAction):
-            commandline.add('--help|-h', help=action.help, takes_args=False)
+            return None
         elif isinstance(action, argparse._VersionAction):
-            commandline.add('--version', help=action.help, takes_args=False)
+            return None
         elif isinstance(action, argparse._StoreTrueAction) or \
              isinstance(action, argparse._StoreFalseAction) or \
              isinstance(action, argparse._StoreConstAction) or \
@@ -732,16 +721,7 @@ def ArgumentParser_to_CommandLine(parser, prog=None, description=None):
             if hasattr(action, 'completion'):
                 raise Exception('Action has completion but takes not arguments', action)
 
-            commandline.add(
-                get_option_strings(action),
-                metavar='',
-                complete=None,
-                help=action.help,
-                takes_args=False,
-                multiple_option=get_multiple_option(action),
-                when=getattr(action, 'condition', None)
-            )
-
+            return None
         elif isinstance(action, argparse._StoreAction) or \
              isinstance(action, argparse._ExtendAction) or \
              isinstance(action, argparse._AppendAction):
@@ -762,20 +742,23 @@ def ArgumentParser_to_CommandLine(parser, prog=None, description=None):
             else:
                 complete = None
 
-            commandline.add(
-                get_option_strings(action),
-                metavar=Action_Get_Metavar(action),
-                complete=complete,
-                help=action.help,
-                takes_args=get_takes_args(action),
-                multiple_option=get_multiple_option(action),
-                when=getattr(action, 'condition', None)
-            )
+            return complete
 
         elif isinstance(action, argparse.BooleanOptionalAction):
             raise Exception("not supported")
 
-        elif isinstance(action, argparse._SubParsersAction):
+        raise Exception('Unknown action: %r' % action)
+
+    if not description:
+        description = parser.description
+
+    if not prog:
+        prog = parser.prog
+
+    commandline = CommandLine(prog, description)
+
+    for action in parser._actions:
+        if isinstance(action, argparse._SubParsersAction):
             subparsers  = OrderedDict()
 
             for name, subparser in action.choices.items():
@@ -789,10 +772,29 @@ def ArgumentParser_to_CommandLine(parser, prog=None, description=None):
             for name, data in subparsers.items():
                 suboptions = ArgumentParser_to_CommandLine(data['parser'], name, data['help'])
                 subp.add_commandline_object(suboptions)
-
+        elif not action.option_strings:
+            commandline.add_positional(
+                metavar=action.metavar or action.dest,
+                complete=get_complete(action),
+                help=action.help,
+                #takes_args=get_takes_args(action),
+                when=get_when(action)
+            )
         else:
-            print('Unknown action type:', type(action), file=sys.stderr)
-            raise
+            metavar = None
+            takes_args = get_takes_args(action)
+            if takes_args:
+                metavar = action.metavar or action.dest.upper() # TODO
+
+            commandline.add_option(
+                action.option_strings,
+                metavar=metavar,
+                complete=get_complete(action),
+                help=action.help,
+                takes_args=takes_args,
+                multiple_option=get_multiple_option(action),
+                when=get_when(action)
+            )
 
     for group in parser._mutually_exclusive_groups:
         exclusive_group = MutuallyExclusiveGroup(commandline)
@@ -837,5 +839,5 @@ def CommandLine_Apply_Config(commandline, config):
             option.multiple_option = config.multiple_options
 
     if commandline.get_subcommands_option():
-        for subcommand in commandline.get_subcommands_option().subcommands.values():
+        for subcommand in commandline.get_subcommands_option().subcommands:
             CommandLine_Apply_Config(subcommand, config)

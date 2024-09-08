@@ -21,7 +21,7 @@ class ZshCompleter(shell.ShellCompleter):
             for item, description in choices.items():
                 code += '  %s:%s\n' % (shell.escape(escape_colon(str(item))), shell.escape(str(description)))
             code += ')\n\n'
-            code += '_describe -- %s DESCRIBE' % shell.escape(ctxt.option.option_strings[0])
+            code += '_describe -- %s DESCRIBE' % shell.escape(ctxt.option.metavar or '') # TODO
 
             ctxt.helpers.add_function(helpers.ShellFunction(funcname, code))
             funcname = ctxt.helpers.use_function(funcname)
@@ -109,6 +109,8 @@ def make_argument_option_spec(
     conflicting_options = [escape_colon(s) for s in sorted(conflicting_options)]
     option_strings      = [escape_colon(s) for s in sorted(option_strings)]
     description         = '[%s]' % escape_colon(escape_square_brackets(description)) if description else ''
+    if not metavar:
+        metavar = ''
     metavar             = escape_colon(metavar)
 
     conflicting_options += option_strings
@@ -176,8 +178,8 @@ class ZshCompletionGenerator():
 
     def complete_subcommands(self, option):
         choices = {}
-        for name, subcommand in option.subcommands.items():
-            choices[name] = subcommand.help
+        for subcommand in option.subcommands:
+            choices[subcommand.prog] = subcommand.help
 
         self.command_counter += 1
 
@@ -228,16 +230,17 @@ class ZshCompletionGenerator():
             return ''
 
         if self.commandline.abbreviate_commands:
-            abbrevs = utils.CommandAbbreviationGenerator(self.subcommands.subcommands.keys())
+            commands = [p.prog for p in self.subcommands.subcommands]
+            abbrevs = utils.CommandAbbreviationGenerator(commands)
         else:
             abbrevs = utils.DummyAbbreviationGenerator()
 
         self.helper_used = True
         zsh_helper = self.ctxt.helpers.use_function('zsh_helper')
         r =  'case "$(%s get_positional %d)" in\n' % (zsh_helper, self.subcommands.get_positional_num())
-        for name, subcommand in self.subcommands.subcommands.items():
+        for subcommand in self.subcommands.subcommands:
             sub_funcname = shell.make_completion_funcname(subcommand)
-            pattern = '|'.join(abbrevs.get_abbreviations(name))
+            pattern = '|'.join(abbrevs.get_abbreviations(subcommand.prog))
             r += f'  ({pattern}) {sub_funcname}; return $?;;\n'
         r += 'esac'
 

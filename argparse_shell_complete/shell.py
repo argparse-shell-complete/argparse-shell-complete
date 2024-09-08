@@ -95,7 +95,10 @@ def make_completion_funcname_for_context(ctxt):
 
     funcname = make_identifier('_'.join(p.prog for p in commandlines))
 
-    return '%s_%s' % (funcname, ctxt.option.option_strings[0])
+    if isinstance(ctxt.option, _commandline.Option):
+        return '%s_%s' % (funcname, ctxt.option.option_strings[0])
+    elif isinstance(ctxt.option, _commandline.Positional):
+        return '%s_%s' % (funcname, ctxt.option.metavar)
 
 class ShellCompleter():
     # TODO: this is actually a mess
@@ -220,5 +223,5 @@ class CompletionGenerator():
         self.result.append(self.completion_klass(self.ctxt, commandline))
 
         if commandline.get_subcommands_option():
-            for subcommand in commandline.get_subcommands_option().subcommands.values():
+            for subcommand in commandline.get_subcommands_option().subcommands:
                 self._call_generator(subcommand)

@@ -326,7 +326,7 @@ class FishCompletionGenerator:
             del completion_args[0]
 
         r = self.make_complete(
-            requires_argument   = option.takes_args,
+            requires_argument   = True,
             description         = option.help,
             positional_contains = self._get_positional_contains(option),
             positional          = option.get_positional_num(),
@@ -339,8 +339,8 @@ class FishCompletionGenerator:
 
     def complete_subcommands(self, option):
         items = dict()
-        for name, subcommand in option.subcommands.items():
-            items[name] = subcommand.help
+        for subcommand in option.subcommands:
+            items[subcommand.prog] = subcommand.help
 
         context = self.ctxt.getOptionGenerationContext(self.commandline, option)
         completion_args = self.completer.complete(context, 'choices', items).get_args()
