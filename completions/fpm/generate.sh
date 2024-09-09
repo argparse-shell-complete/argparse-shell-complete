@@ -26,4 +26,4 @@ if [[ "$1" == 'fish' ]]; then
   opts='--multiple-options=True'
 fi
 
-$argparse_shell_complete $opts "$@" fpm.py
+$argparse_shell_complete --allow-python $opts "$@" fpm.py

@@ -2,11 +2,11 @@
 
 import os
 import sys
-import importlib
-import tempfile
+import json
 import argparse
 
 from argparse_shell_complete import zsh, bash, fish, commandline, argparse_mod
+from argparse_shell_complete import file_loader, argparse_source, json_source
 from argparse_shell_complete import config as _config
 
 
@@ -19,69 +19,62 @@ def parse_bool(s):
 
 
 p = argparse.ArgumentParser('argparse-shell-complete',
-                            description='Generate shell completion files using pythons argparse module')
+    description='Generate shell auto completion files')
 
-p.add_argument('shell', choices=('bash', 'fish', 'zsh'),
-               help='The shell type for the completion script')
+p.add_argument('shell', choices=('bash', 'fish', 'zsh', 'json'),
+    help='Specify the shell type for the completion script')
 
-p.add_argument('program_file',
-               help='The file containing the command line definitions').complete('file')
+p.add_argument('source_file',
+    help='The file containing the command line definitions').complete('file')
 
 p.add_argument('--parser-variable', default=None,
-               help='Specify parser variable name')
+    help='Specify the variable name of the ArgumentParser object')
+
+p.add_argument('--allow-python', action='store_true', default=False,
+    help='Allow python files as source')
 
 p.add_argument('--program-name', default=None,
-               help='Specify program name')
+    help='Specify program name')
 
 p.add_argument('--abbreviate-commands', default=False, type=parse_bool,
-               help='Sets whether commands can be abbreviated')
+    help='Sets whether commands can be abbreviated')
 
 p.add_argument('--abbreviate-options', default=False, type=parse_bool,
-               help='Sets wether options can be abbreviate')
+    help='Sets whether options can be abbreviated')
 
 p.add_argument('--multiple-options', default=False, type=parse_bool,
-               help='Sets whether options are suggested multiple times during completion')
+    help='Sets whether options are suggested multiple times during completion')
 
 p.add_argument('--inherit-options', default=False, type=parse_bool,
-               help='Sets whether parent options are visible to subcommands')
+    help='Sets whether parent options are visible to subcommands')
 
 p.add_argument('--vim-modeline', default=True, type=parse_bool,
-               help='Sets whether a vim modeline comment shall be appended to the generated code')
+    help='Sets whether a vim modeline comment shall be appended to the generated code')
 
 p.add_argument('--zsh-compdef', default=True, type=parse_bool,
-               help='Sets whether #compdef is used in zsh scripts')
+    help='Sets whether #compdef is used in zsh scripts')
 
 p.add_argument('--include-file', action='append',
-               help='Include file in output').complete('file')
+    help='Include file in output').complete('file')
 
 p.add_argument('--debug', action='store_true',
-               help='Enable debug mode')
+    help='Enable debug mode')
 
 grp = p.add_mutually_exclusive_group()
 
 grp.add_argument('-o', '--output', default=None,
-                 help='Write output to destination file [default: stdout]')
+    help='Write output to destination file [default: stdout]').complete('file')
 
 grp.add_argument('-i', '--install-system-wide', default=False, action='store_true',
-                 help='Write output to the system wide completions dir of shell')
+    help='Write output to the system wide completions dir of shell')
 
 grp.add_argument('-u', '--uninstall-system-wide', default=False, action='store_true',
-                 help='Uninstall the system wide completion file for program')
+    help='Uninstall the system wide completion file for program')
 
 # We use an unique object name for avoinding name clashes when
 # importing/executing the foreign python script
 _argparse_shell_complete_argument_parser = p
 del p
-
-
-def close_output_streams():
-    sys.stdout = sys.stderr = open(os.devnull, 'w')
-
-
-def restore_output_streams():
-    sys.stdout = sys.__stdout__
-    sys.stderr = sys.__stderr__
-
 
 def find_ArgumentParser(module):
     found_parsers = []
@@ -102,75 +95,56 @@ def find_ArgumentParser(module):
 
     return None
 
-
-def execute_file(file):
-    ''' Import file using exec '''
-
-    import __main__
-
-    close_output_streams()
-
+def load_from_json(file):
     with open(file, 'r') as fh:
-        source = fh.read()
-        compiled = compile(source, file, 'exec')
-        try:
-            exec(compiled, globals())
-        except SystemExit:
-            pass
+        return json_source.JSON_To_Commandline(json.load(fh))
 
-    restore_output_streams()
-
-    return __main__
-
-
-def import_file(file):
-    ''' Import file using importlib '''
-
-    directory, filename = os.path.split(file)
-    if filename.lower().endswith('.py'):
-        module_name = filename[:-3]
-    else:
-        temp = tempfile.NamedTemporaryFile(mode='w', suffix='.py')
-        with open(file, 'r') as fh:
-            temp.file.write(fh.read())
-            temp.flush()
-
-        directory, file = os.path.split(temp.name)
-        module_name = file[:-3]
-
-    if not directory:
-        directory = '.'
-
-    if directory not in sys.path:
-        sys.path.append(directory)
-
-    return importlib.import_module(module_name)
-
-
-def generate(opts):
-    if not os.path.exists(opts.program_file):
-        raise FileNotFoundError(opts.program_file)
-
+def load_from_python(file, parser_variable=None):
     try:
-        module = import_file(opts.program_file)
+        module = file_loader.import_file(file)
     except Exception as e:
         print(e)
-        print("Warning: failed to load `%s` using importlib, falling back to `exec`" % opts.program_file, file=sys.stderr)
-        module = execute_file(opts.program_file)
+        print("Warning: failed to load `%s` using importlib, falling back to `exec`" % file, file=sys.stderr)
+        module = file_loader.execute_file(file)
 
-    if opts.parser_variable:
-        parser = getattr(module, opts.parser_variable)
+    if parser_variable is not None:
+        try:
+            parser = getattr(module, parser_variable)
+        except:
+            raise Exception("No variable found named %r" % parser_variable)
     else:
         parser = find_ArgumentParser(module)
 
     if parser is None:
-        print("Could not get ArgumentParser object from `%s`" % opts.program_file, file=sys.stderr)
-        sys.exit(1)
+        raise Exception("Could not find any ArgumentParser object in `%s`" % file)
+
+    return argparse_source.ArgumentParser_to_CommandLine(parser)
+
+def generate(opts):
+    if not os.path.exists(opts.source_file):
+        raise FileNotFoundError(opts.source_file)
+
+    if opts.shell == 'json':
+        try:    cmdline = load_from_json(opts.source_file)
+        except: cmdline = load_from_python(opts.source_file, opts.parser_variable)
+
+        objs = json_source.CommandLine_To_JSON(cmdline)
+        r = json.dumps(objs, indent=None)
+        fh = open(opts.output, 'w') if opts.output else sys.stdout
+        print(r, file=fh)
+        return
+
+    try:
+        cmdline = load_from_json(opts.source_file)
+    except:
+        if opts.allow_python:
+            cmdline = load_from_python(opts.source_file, opts.parser_variable)
+        else:
+            raise
 
     if opts.program_name is None:
-        opts.program_name = parser.prog
+        opts.program_name = cmdline.prog
 
-    cmdline = commandline.ArgumentParser_to_CommandLine(parser)
     config = _config.Config()
     config.set_abbreviate_commands(opts.abbreviate_commands)
     config.set_abbreviate_options(opts.abbreviate_options)
@@ -178,8 +152,7 @@ def generate(opts):
     config.set_inherit_options(opts.inherit_options)
     config.set_vim_modeline(opts.vim_modeline)
     config.set_zsh_compdef(opts.zsh_compdef)
-    if opts.include_file:
-        config.include_many_files(opts.include_file)
+    config.include_many_files(opts.include_file or [])
 
     r = {
         'bash': bash.generate_completion,

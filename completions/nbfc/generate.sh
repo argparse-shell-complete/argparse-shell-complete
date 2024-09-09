@@ -30,4 +30,4 @@ fi
   exit 1
 }
 
-$argparse_shell_complete $2 $1.py
+$argparse_shell_complete --allow-python $2 $1.py

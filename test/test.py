@@ -16,7 +16,7 @@ TESTS_OUTFILE = 'tests.new.py'
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 def generate_completion(shell, outfile, args):
-    run(['../argparse-shell-complete', shell, '-o', outfile, 'argparse-shell-complete-test'] + args)
+    run(['../argparse-shell-complete', '--allow-python', shell, '-o', outfile, 'argparse-shell-complete-test'] + args)
 
 def find_test_by_number(num):
     for test in tests.tests:

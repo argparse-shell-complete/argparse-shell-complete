@@ -30,4 +30,4 @@ fi
   exit 1
 }
 
-$argparse_shell_complete --include-file $1.$2 $2 $1.py
+$argparse_shell_complete --allow-python --include-file $1.$2 $2 $1.py

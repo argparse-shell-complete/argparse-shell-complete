@@ -1,22 +1,18 @@
 #!/usr/bin/python3
 
-import sys
-import argparse
-from collections import OrderedDict, defaultdict
-from itertools import chain
+from collections import OrderedDict
 
-from . import shell
 from . import config as _config
 
 def is_bool(obj):
     return isinstance(obj, bool)
 
-class ExtendedBool():
+class ExtendedBool:
     TRUE    = True
     FALSE   = False
-    INHERIT = 'inherit'
+    INHERIT = 'INHERIT'
 
-class CommandLine():
+class CommandLine:
     '''
     Represents a command line interface with options, positionals, and subcommands.
     '''
@@ -38,6 +34,7 @@ class CommandLine():
             parent (CommandLine or None): The parent command line object, if any.
             abbreviate_commands (ExtendedBool): Specifies if commands can be abbreviated.
             abbreviate_options (ExtendedBool): Specifies if options can be abbreviated.
+            inherit_options (ExtendedBool): Specifies if options are visible to subcommands.
         '''
         assert isinstance(program_name, str), "CommandLine: program_name: expected str, got %r" % program_name
         assert isinstance(help, (str, None.__class__)), "CommandLine: help: expected str, got %r" % help
@@ -71,10 +68,12 @@ class CommandLine():
             help (str): The help message for the option.
             complete (tuple): The completion specification for the option.
             takes_args (bool): Specifies if the option takes arguments.
+            group (str): Specify to which mutually exclusive group this option belongs to.
             multiple_option (ExtendedBool): Specifies if the option can be repeated.
+            when (str): Specifies a condition for showing this option.
 
         Returns:
-            Option: The newly added option object.
+            Option: The newly added Option object.
         '''
 
         o = Option(self,
@@ -97,18 +96,16 @@ class CommandLine():
             #takes_args=True,
             when=None):
         '''
-        Adds a new option or positional argument to the command line.
+        Adds a new positional argument to the command line.
 
         Args:
-            option_strings (list of str): The list of option strings.
-            metavar (str): The metavar for the option.
-            help (str): The help message for the option.
-            complete (tuple): The completion specification for the option.
-            takes_args (bool): Specifies if the option takes arguments.
-            multiple_option (ExtendedBool): Specifies if the option can be repeated.
+            metavar (str): The metavar for the positional.
+            help (str): The help message for the positional.
+            complete (tuple): The completion specification for the positional.
+            when (str): Specifies a condition for showing this positional. 
 
         Returns:
-            Option: The newly added option object.
+            Positional: The newly added Positional object.
         '''
 
         p = Positional(self,
@@ -245,14 +242,14 @@ class CommandLine():
         commandlines = self.get_parents(include_self=True)
         return commandlines[0].prog
 
-    def copy(self, parent=None):
+    def copy(self):
         '''
         Make a copy of the current CommandLine object, including sub-objects.
         '''
-        copy = CommandLine(self.prog, help=self.help, parent=parent)
+        copy = CommandLine(self.prog, help=self.help, parent=None)
 
         for option in self.options:
-            o = copy.add_option(
+            copy.add_option(
                 option.option_strings,
                 metavar = option.metavar,
                 help = option.help,
@@ -344,6 +341,24 @@ class Positional:
         '''
         return self.get_positional_index() + 1
 
+
+    def OrderedDict(self):
+        r = OrderedDict()
+
+        if self.metavar:
+            r['metavar'] = self.metavar
+
+        if self.help:
+            r['help'] = self.help
+
+        if self.when:
+            r['when'] = self.when
+
+        if self.complete and self.complete[0] != 'none':
+            r['complete'] = self.complete
+
+        return r
+
 class Option:
     def __init__(
             self,
@@ -382,6 +397,33 @@ class Option:
 
         if not self.takes_args and self.metavar:
             raise Exception('Option does not take an argument but has metavar set')
+
+    def OrderedDict(self):
+        r = OrderedDict()
+        r['option_strings'] = self.option_strings
+
+        if self.metavar:
+            r['metavar'] = self.metavar
+
+        if self.help:
+            r['help'] = self.help
+
+        if self.takes_args != True:
+            r['takes_args'] = self.takes_args
+
+        if self.group:
+            r['group'] = self.group
+
+        if self.multiple_option != ExtendedBool.INHERIT:
+            r['multiple_option'] = self.multiple_option
+
+        if self.complete and self.complete[0] != 'none':
+            r['complete'] = self.complete
+
+        if self.when:
+            r['when'] = self.when
+
+        return r
 
     def get_option_strings(self):
         '''
@@ -447,7 +489,7 @@ class Option:
             option_strings.extend(option.get_option_strings())
         return option_strings
 
-    def equals(self, other):
+    def __eq__(self, other):
         return (
             isinstance(other, Option) and
             self.option_strings  == other.option_strings and
@@ -458,9 +500,6 @@ class Option:
             self.complete        == other.complete and
             self.group           == other.group
         )
-
-    def __eq__(self, other): # TODO: drop eequals?
-        return self.equals(other)
 
     def __repr__(self):
         # TODO
@@ -526,264 +565,6 @@ class MutuallyExclusiveGroup:
         ''' Adds an option object '''
         option.parent = self.parent
         option.group = self.group
-
-def JSON_To_Commandline(json):
-    def find_CommandLine_by_id(list, id):
-        for commandline in list:
-            if commandline['id'] == id:
-                return commandline
-
-        raise KeyError(id)
-
-    def jsonToObject(commandlines, json, parent):
-        commandline = CommandLine(
-            json['prog'],
-            json['help'],
-            parent,
-            abbreviate_commands=json['abbreviate_commands'],
-            abbreviate_options=json['abbreviate_options'])
-
-        groups = defaultdict(list)
-        for json_option in json['options']:
-            o = commandline.add(
-                json_option['option_strings'],
-                json_option['metavar'],
-                json_option['help'],
-                json_option['complete'],
-                json_option['takes_args'],
-                json_option['multiple_option'],
-                json_option['when'])
-            if json_option['group'] is not None:
-                groups[json_option['group']].append(o)
-
-        for group, options in groups.items():
-            g = commandline.add_mutually_exclusive_group()
-            for option in options:
-                g.add_option(option)
-
-        if 'subcommands' in json:
-            subcommands = commandline.add_subcommands()
-            for name, id in json['subcommands'].items():
-                subcommands.add_commandline_object(
-                    jsonToObject(commandlines, find_CommandLine_by_id(commandlines, id), commandline)
-                )
-
-        return commandline
-
-    commandlines = json['commandlines']
-    commandline = jsonToObject(commandlines, find_CommandLine_by_id(commandlines, 'main'), None)
-    return commandline
-
-def CommandLine_To_JSON(commandline, config=None):
-    def get_CommandLine_Object(commandline):
-        commandline_json = OrderedDict()
-
-        if commandline.parent is None:
-            commandline_json['id'] = 'main'
-        else:
-            commandline_json['id'] = shell.make_completion_funcname(commandline)
-
-        commandline_json['prog'] = commandline.prog
-        commandline_json['help'] = commandline.help
-        commandline_json['abbreviate_commands'] = commandline.abbreviate_commands
-        commandline_json['abbreviate_options'] = commandline.abbreviate_options
-        commandline_json['options'] = []
-
-        groups = []
-        for option in chain(commandline.options, commandline.positionals):
-            option_json = OrderedDict()
-            option_json['option_strings']  = option.option_strings
-            option_json['metavar']         = option.metavar
-            option_json['help']            = option.help
-            option_json['takes_args']      = option.takes_args
-            option_json['multiple_option'] = option.multiple_option
-            option_json['complete']        = option.complete
-            option_json['when']            = option.when
-
-            if option.group is None:
-                option_json['group'] = None
-            else:
-                if option.group not in groups:
-                    groups.append(option.group)
-                option_json['group'] = 'group%d' % (groups.index(option.group) + 1)
-            commandline_json['options'].append(option_json)
-            # TODO
-
-        if commandline.subcommands is not None:
-            commandline_json['subcommands'] = {}
-
-            for parser in commandline.subcommands.subcommands.values():
-                commandline_json['subcommands'][parser.prog] = shell.make_completion_funcname(parser)
-
-        return commandline_json
-
-    def get_CommandLine_Objects(commandline, out_list):
-        out_list.append(get_CommandLine_Object(commandline))
-        if commandline.subcommands is not None:
-            for parser in commandline.subcommands.subcommands.values():
-                get_CommandLine_Objects(parser, out_list)
-
-    root_json = OrderedDict()
-    commandline_json = root_json['commandlines'] = []
-
-    get_CommandLine_Objects(commandline, commandline_json)
-
-    return root_json
-
-def Action_Get_Metavar(action):
-    if action.metavar:
-        return action.metavar
-    elif action.type is int:
-        return 'INT'
-    elif action.type is bool:
-        return 'BOOL'
-    elif action.type is float:
-        return 'FLOAT'
-    else:
-        return action.dest.upper()
-
-def ArgumentParser_to_CommandLine(parser, prog=None, description=None):
-    '''
-    Converts an ArgumentParser object to a CommandLine object.
-
-    Args:
-        parser (argparse.ArgumentParser): The ArgumentParser object to convert.
-        prog (str, optional): The name of the program. Defaults to the program name of the parser.
-        description (str, optional): The description of the program. Defaults to the description of the parser.
-
-    Returns:
-        CommandLine: A CommandLine object representing the converted parser.
-    '''
-
-    def get_multiple_option(action):
-        return getattr(action, 'multiple_option', ExtendedBool.INHERIT)
-
-    def get_when(action):
-        return getattr(action, 'condition', None)
-
-    def get_takes_args(action):
-        # TODO...
-        if action.nargs is None or action.nargs == 1:
-            return True
-        elif action.nargs == '?':
-            return '?'
-        elif action.nargs == 0:
-            return False
-        elif action.nargs == '+':
-            print('Truncating %r nargs' % action, file=sys.stderr)
-            return True
-        elif action.nargs == '*':
-            print('Truncating %r nargs' % action, file=sys.stderr)
-            return '?'
-        elif isinstance(action.nargs, int) and action.nargs > 1:
-            print('Truncating %r nargs' % action, file=sys.stderr)
-            return True
-        raise
-
-    def get_complete(action):
-        if isinstance(action, argparse._HelpAction):
-            return None
-        elif isinstance(action, argparse._VersionAction):
-            return None
-        elif isinstance(action, argparse._StoreTrueAction) or \
-             isinstance(action, argparse._StoreFalseAction) or \
-             isinstance(action, argparse._StoreConstAction) or \
-             isinstance(action, argparse._AppendConstAction) or \
-             isinstance(action, argparse._CountAction):
-
-            if hasattr(action, 'completion'):
-                raise Exception('Action has completion but takes not arguments', action)
-
-            return None
-        elif isinstance(action, argparse._StoreAction) or \
-             isinstance(action, argparse._ExtendAction) or \
-             isinstance(action, argparse._AppendAction):
-
-            if action.choices and hasattr(action, 'completion'):
-                raise Exception('Action has both choices and completion set', action)
-
-            if action.choices:
-                if isinstance(action.choices, range):
-                    if action.choices.step == 1:
-                        complete = ('range', action.choices.start, action.choices.stop)
-                    else:
-                        complete = ('range', action.choices.start, action.choices.stop, action.choices.step)
-                else:
-                    complete = ('choices', action.choices)
-            elif hasattr(action, 'completion'):
-                complete = action.completion
-            else:
-                complete = None
-
-            return complete
-
-        elif isinstance(action, argparse.BooleanOptionalAction):
-            raise Exception("not supported")
-
-        raise Exception('Unknown action: %r' % action)
-
-    if not description:
-        description = parser.description
-
-    if not prog:
-        prog = parser.prog
-
-    commandline = CommandLine(prog, description)
-
-    for action in parser._actions:
-        if isinstance(action, argparse._SubParsersAction):
-            subparsers  = OrderedDict()
-
-            for name, subparser in action.choices.items():
-                subparsers[name] = {'parser': subparser, 'help': ''}
-
-            for action in action._get_subactions():
-                subparsers[action.dest]['help'] = action.help
-
-            subp = commandline.add_subcommands(name='command', help='Subcommands')
-
-            for name, data in subparsers.items():
-                suboptions = ArgumentParser_to_CommandLine(data['parser'], name, data['help'])
-                subp.add_commandline_object(suboptions)
-        elif not action.option_strings:
-            commandline.add_positional(
-                metavar=action.metavar or action.dest,
-                complete=get_complete(action),
-                help=action.help,
-                #takes_args=get_takes_args(action),
-                when=get_when(action)
-            )
-        else:
-            metavar = None
-            takes_args = get_takes_args(action)
-            if takes_args:
-                metavar = action.metavar or action.dest.upper() # TODO
-
-            commandline.add_option(
-                action.option_strings,
-                metavar=metavar,
-                complete=get_complete(action),
-                help=action.help,
-                takes_args=takes_args,
-                multiple_option=get_multiple_option(action),
-                when=get_when(action)
-            )
-
-    group_counter = 0
-    for group in parser._mutually_exclusive_groups:
-        group_counter += 1
-        group_name = 'group%d' % group_counter
-
-        exclusive_group = MutuallyExclusiveGroup(commandline, group_name)
-        for action in group._group_actions:
-            for option in commandline.get_options():
-                for option_string in action.option_strings:
-                    if option_string in option.option_strings:
-                        exclusive_group.add_option(option)
-                        break
-
-    return commandline
-
 
 def CommandLine_Apply_Config(commandline, config):
     '''
