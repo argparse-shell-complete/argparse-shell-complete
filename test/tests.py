@@ -818,6 +818,47 @@ foo,baz,baz  (Complete a list)\
 
 {
  'number': 42,
+ 'description': 'complete: Check --range-1',
+ 'send': 'argparse-shell-complete-test complete --range-1 ',
+ 'bash_expected': '''\
+> argparse-shell-complete-test complete --range-1
+1  2  3  4  5  6  7  8  9
+> argparse-shell-complete-test complete --range-1\
+''',
+ 'fish_expected': '''\
+> argparse-shell-complete-test complete --range-1
+1  (Complete a range)  4  (Complete a range)  7  (Complete a range)
+2  (Complete a range)  5  (Complete a range)  8  (Complete a range)
+3  (Complete a range)  6  (Complete a range)  9  (Complete a range)\
+''',
+ 'zsh_expected': '''\
+> argparse-shell-complete-test complete --range-1
+1  2  3  4  5  6  7  8  9\
+'''
+},
+
+{
+ 'number': 43,
+ 'description': 'complete: Check --range-2',
+ 'send': 'argparse-shell-complete-test complete --range-2 ',
+ 'bash_expected': '''\
+> argparse-shell-complete-test complete --range-2
+1  3  5  7  9
+> argparse-shell-complete-test complete --range-2\
+''',
+ 'fish_expected': '''\
+> argparse-shell-complete-test complete --range-2
+1  (Complete a range)  5  (Complete a range)  9  (Complete a range)
+3  (Complete a range)  7  (Complete a range)\
+''',
+ 'zsh_expected': '''\
+> argparse-shell-complete-test complete --range-2
+1  3  5  7  9\
+'''
+},
+
+{
+ 'number': 44,
  'description': 'Check if positionals are working (1st positional)',
  'send': 'argparse-shell-complete-test test ',
  'bash_expected': '''\
@@ -836,7 +877,7 @@ first2  (First positional)\
 },
 
 {
- 'number': 43,
+ 'number': 45,
  'description': 'Check if positionals are working (2nd positional)',
  'send': 'argparse-shell-complete-test test first1 ',
  'bash_expected': '''\
@@ -854,7 +895,7 @@ second1  (Second positional)  second2  (Second positional)\
 },
 
 {
- 'number': 44,
+ 'number': 46,
  'description': 'Check if positionals are working (3rd positional)',
  'send': 'argparse-shell-complete-test test first1 second1 ',
  'bash_expected': '''\
@@ -872,7 +913,7 @@ repeated1  (Repeated positional)  repeated2  (Repeated positional)\
 },
 
 {
- 'number': 45,
+ 'number': 47,
  'description': 'Check if positionals are working (repeated positional)',
  'send': 'argparse-shell-complete-test test first1 second1 repeated1 ',
  'bash_expected': '''\
