@@ -123,24 +123,25 @@ class FishCompleter(shell.ShellCompleter):
 # Helper function for creating a `complete` command in fish
 # =============================================================================
 
-class Conditions:
-    def __init__(self):
-        self.condition_to_guard = {}
+class VariableManager:
+    def __init__(self, variable_name):
+        self.variable_name = variable_name
+        self.value_to_variable  = {}
         self.counter = 0
 
-    def add(self, condition):
-        if condition in self.condition_to_guard:
-            return '$%s' % self.condition_to_guard[condition]
+    def add(self, value):
+        if value in self.value_to_variable:
+            return '$%s' % self.value_to_variable[value]
 
-        condition_guard = 'guard%03d' % self.counter
-        self.condition_to_guard[condition] = condition_guard
+        var = '%s%03d' % (self.variable_name, self.counter)
+        self.value_to_variable[value] = var
         self.counter += 1
-        return '$%s' % condition_guard
+        return '$%s' % var
 
     def get_lines(self):
         r = []
-        for condition, guard in self.condition_to_guard.items():
-            r.append('set -l %s %s' % (guard, condition))
+        for value, variable in self.value_to_variable.items():
+            r.append('set -l %s %s' % (variable, value))
         return r
 
 class FishCompleteCommand:
@@ -227,7 +228,7 @@ class FishCompletionGenerator:
         self.ctxt = ctxt
         self.completer = FishCompleter()
         self.lines = []
-        self.conditions = Conditions()
+        self.conditions = VariableManager('guard')
         self.command_comment = '# command %s' % ' '.join(p.prog for p in self.commandline.get_parents(include_self=True))
         self.options_for_helper = 'set -l options "%s"' % self._get_option_strings_for_helper()
 
