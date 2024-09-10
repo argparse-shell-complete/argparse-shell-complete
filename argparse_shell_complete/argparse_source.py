@@ -30,12 +30,6 @@ def ArgumentParser_to_CommandLine(parser, prog=None, description=None):
         CommandLine: A CommandLine object representing the converted parser.
     '''
 
-    def get_multiple_option(action):
-        return getattr(action, 'multiple_option', ExtendedBool.INHERIT)
-
-    def get_when(action):
-        return getattr(action, 'condition', None)
-
     def get_takes_args(action):
         # TODO...
         if action.nargs is None or action.nargs == 1:
@@ -66,16 +60,16 @@ def ArgumentParser_to_CommandLine(parser, prog=None, description=None):
              isinstance(action, argparse._AppendConstAction) or \
              isinstance(action, argparse._CountAction):
 
-            if hasattr(action, 'completion'):
-                raise Exception('Action has completion but takes not arguments', action)
+            if action.get_complete():
+                raise Exception('Action has complete but takes not arguments', action)
 
             return None
         elif isinstance(action, argparse._StoreAction) or \
              isinstance(action, argparse._ExtendAction) or \
              isinstance(action, argparse._AppendAction):
 
-            if action.choices and hasattr(action, 'completion'):
-                raise Exception('Action has both choices and completion set', action)
+            if action.choices and action.get_complete():
+                raise Exception('Action has both choices and complete set', action)
 
             if action.choices:
                 if isinstance(action.choices, range):
@@ -85,10 +79,8 @@ def ArgumentParser_to_CommandLine(parser, prog=None, description=None):
                         complete = ('range', action.choices.start, action.choices.stop, action.choices.step)
                 else:
                     complete = ('choices', action.choices)
-            elif hasattr(action, 'completion'):
-                complete = action.completion
             else:
-                complete = None
+                complete = action.get_complete()
 
             return complete
 
@@ -133,7 +125,7 @@ def ArgumentParser_to_CommandLine(parser, prog=None, description=None):
                 complete=get_complete(action),
                 help=action.help,
                 repeatable=is_repeatable,
-                when=get_when(action)
+                when=action.get_when()
             )
         else:
             metavar = None
@@ -147,8 +139,8 @@ def ArgumentParser_to_CommandLine(parser, prog=None, description=None):
                 complete=get_complete(action),
                 help=action.help,
                 takes_args=takes_args,
-                multiple_option=get_multiple_option(action),
-                when=get_when(action)
+                multiple_option=action.get_multiple_option(),
+                when=action.get_when()
             )
 
     group_counter = 0

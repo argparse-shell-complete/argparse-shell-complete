@@ -2,22 +2,38 @@
 
 import argparse
 
+from .commandline import *
 
 def _action_complete(self, command, *args):
-    setattr(self, 'completion', (command, *args))
+    setattr(self, '_complete', (command, *args))
     return self
+
+
+def _action_get_complete(self):
+    return getattr(self, '_complete', None)
 
 
 def _action_when(self, when):
-    setattr(self, 'condition', when)
+    setattr(self, '_when', when)
     return self
+
+
+def _action_get_when(self):
+    return getattr(self, '_when', None)
 
 
 def _action_set_multiple_option(self, enable=True):
-    setattr(self, 'multiple_option', enable)
+    setattr(self, '_multiple_option', enable)
     return self
 
 
+def _action_get_multiple_option(self):
+    return getattr(self, '_multiple_option', ExtendedBool.INHERIT)
+
+
 argparse.Action.complete = _action_complete
+argparse.Action.get_complete = _action_get_complete
 argparse.Action.when = _action_when
+argparse.Action.get_when = _action_get_when
 argparse.Action.set_multiple_option = _action_set_multiple_option
+argparse.Action.get_multiple_option = _action_get_multiple_option
