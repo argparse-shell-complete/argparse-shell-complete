@@ -105,13 +105,7 @@ class BashCompleter(shell.ShellCompleter):
         return BashCompletionCompgen(ctxt, '-A command')
 
     def directory(self, ctxt, opts={}):
-        directory = None
-        for name, value in opts.items():
-            if name == 'directory':
-                directory = value
-            else:
-                raise Exception('Unknown option: %s' % name)
-
+        directory = opts.get('directory', None)
         if directory:
             cmd =  'pushd %s &>/dev/null && {\n'
             cmd += '  _filedir -d\n'
@@ -122,13 +116,7 @@ class BashCompleter(shell.ShellCompleter):
             return BashCompletionCommand(ctxt, '_filedir -d')
 
     def file(self, ctxt, opts={}):
-        directory = None
-        for name, value in opts.items():
-            if name == 'directory':
-                directory = value
-            else:
-                raise Exception('Unknown option: %s' % name)
-
+        directory = opts.get('directory', None)
         if directory:
             cmd =  'pushd %s &>/dev/null && {\n'
             cmd += '  _filedir\n'

@@ -33,25 +33,13 @@ class ZshCompleter(shell.ShellCompleter):
         return '_command_names'
 
     def directory(self, ctxt, opts={}):
-        directory = None
-        for name, value in opts.items():
-            if name == 'directory':
-                directory = value
-            else:
-                raise Exception('Unknown option: %s' % name)
-
+        directory = opts.get('directory', None)
         if directory:
             return '"_directories -W %s"' % directory
         return '_directories'
 
     def file(self, ctxt, opts={}):
-        directory = None
-        for name, value in opts.items():
-            if name == 'directory':
-                directory = value
-            else:
-                raise Exception('Unknown option: %s' % name)
-
+        directory = opts.get('directory', None)
         if directory:
             return '"_files -W %s"' % directory
         return '_files'

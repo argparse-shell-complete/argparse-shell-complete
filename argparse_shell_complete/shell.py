@@ -4,6 +4,7 @@ import re
 import sys
 import collections
 
+from . import completion_validator
 from . import commandline as _commandline
 from . import config as _config
 
@@ -208,6 +209,7 @@ class CompletionGenerator():
             config = _config.Config()
 
         _commandline.CommandLine_Apply_Config(commandline, config)
+        completion_validator.CompletionValidator().validate_commandlines(commandline)
 
         self.include_files_content = []
         for file in config.include_files:
