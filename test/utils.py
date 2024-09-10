@@ -51,10 +51,10 @@ class BashShell(ShellBase):
         self.tmux.send_keys("PS1='> '\n")
 
     def init_completion(self):
-        self.tmux.send_keys('. /usr/share/bash-completion/bash_completion\n')
+        self.tmux.send_keys('source /usr/share/bash-completion/bash_completion\n')
 
     def load_completion(self, file):
-        self.tmux.send_keys('. %s\n' % file)
+        self.tmux.send_keys('source %s\n' % file)
 
 class FishShell(ShellBase):
     def start(self):
@@ -78,6 +78,7 @@ class ZshShell(ShellBase):
 
     def init_completion(self):
         self.tmux.send_keys('autoload -U compinit && compinit\n')
+        time.sleep(0.5)
 
     def load_completion(self, file):
         self.tmux.send_keys('source %s\n' % file)
