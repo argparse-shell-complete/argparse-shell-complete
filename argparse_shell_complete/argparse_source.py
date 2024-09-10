@@ -5,17 +5,45 @@ import argparse
 
 from .commandline import *
 
-def Action_Get_Metavar(action):
-    if action.metavar:
-        return action.metavar
-    elif action.type is int:
-        return 'INT'
-    elif action.type is bool:
-        return 'BOOL'
-    elif action.type is float:
-        return 'FLOAT'
-    else:
-        return action.dest.upper()
+def get_complete(action):
+    if isinstance(action, argparse._HelpAction):
+        return None
+    elif isinstance(action, argparse._VersionAction):
+        return None
+    elif isinstance(action, argparse._StoreTrueAction) or \
+         isinstance(action, argparse._StoreFalseAction) or \
+         isinstance(action, argparse._StoreConstAction) or \
+         isinstance(action, argparse._AppendConstAction) or \
+         isinstance(action, argparse._CountAction):
+
+        if action.get_complete():
+            raise Exception('Action has complete but takes no arguments', action)
+
+        return None
+    elif isinstance(action, argparse._StoreAction) or \
+         isinstance(action, argparse._ExtendAction) or \
+         isinstance(action, argparse._AppendAction):
+
+        if action.choices and action.get_complete():
+            raise Exception('Action has both choices and complete set', action)
+
+        if action.choices:
+            if isinstance(action.choices, range):
+                if action.choices.step == 1:
+                    complete = ('range', action.choices.start, action.choices.stop)
+                else:
+                    complete = ('range', action.choices.start, action.choices.stop, action.choices.step)
+            else:
+                complete = ('choices', action.choices)
+        else:
+            complete = action.get_complete()
+
+        return complete
+
+    elif isinstance(action, argparse.BooleanOptionalAction):
+        raise Exception("not supported")
+
+    raise Exception('Unknown action: %r' % action)
 
 def ArgumentParser_to_CommandLine(parser, prog=None, description=None):
     '''
@@ -29,65 +57,6 @@ def ArgumentParser_to_CommandLine(parser, prog=None, description=None):
     Returns:
         CommandLine: A CommandLine object representing the converted parser.
     '''
-
-    def get_takes_args(action):
-        # TODO...
-        if action.nargs is None or action.nargs == 1:
-            return True
-        elif action.nargs == '?':
-            return '?'
-        elif action.nargs == 0:
-            return False
-        elif action.nargs == '+':
-            print('Truncating %r nargs' % action, file=sys.stderr)
-            return True
-        elif action.nargs == '*':
-            print('Truncating %r nargs' % action, file=sys.stderr)
-            return '?'
-        elif isinstance(action.nargs, int) and action.nargs > 1:
-            print('Truncating %r nargs' % action, file=sys.stderr)
-            return True
-        raise
-
-    def get_complete(action):
-        if isinstance(action, argparse._HelpAction):
-            return None
-        elif isinstance(action, argparse._VersionAction):
-            return None
-        elif isinstance(action, argparse._StoreTrueAction) or \
-             isinstance(action, argparse._StoreFalseAction) or \
-             isinstance(action, argparse._StoreConstAction) or \
-             isinstance(action, argparse._AppendConstAction) or \
-             isinstance(action, argparse._CountAction):
-
-            if action.get_complete():
-                raise Exception('Action has complete but takes not arguments', action)
-
-            return None
-        elif isinstance(action, argparse._StoreAction) or \
-             isinstance(action, argparse._ExtendAction) or \
-             isinstance(action, argparse._AppendAction):
-
-            if action.choices and action.get_complete():
-                raise Exception('Action has both choices and complete set', action)
-
-            if action.choices:
-                if isinstance(action.choices, range):
-                    if action.choices.step == 1:
-                        complete = ('range', action.choices.start, action.choices.stop)
-                    else:
-                        complete = ('range', action.choices.start, action.choices.stop, action.choices.step)
-                else:
-                    complete = ('choices', action.choices)
-            else:
-                complete = action.get_complete()
-
-            return complete
-
-        elif isinstance(action, argparse.BooleanOptionalAction):
-            raise Exception("not supported")
-
-        raise Exception('Unknown action: %r' % action)
 
     if not description:
         description = parser.description
@@ -128,10 +97,18 @@ def ArgumentParser_to_CommandLine(parser, prog=None, description=None):
                 when=action.get_when()
             )
         else:
+            if action.nargs is None or action.nargs == 1:
+                takes_args = True
+            elif action.nargs == '?':
+                takes_args = '?'
+            elif action.nargs == 0:
+                takes_args = False
+            else:
+                print('Truncating %r nargs' % action, file=sys.stderr)
+
             metavar = None
-            takes_args = get_takes_args(action)
             if takes_args:
-                metavar = action.metavar or action.dest.upper() # TODO
+                metavar = action.metavar or action.dest
 
             commandline.add_option(
                 action.option_strings,
