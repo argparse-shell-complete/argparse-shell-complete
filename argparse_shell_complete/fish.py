@@ -152,8 +152,86 @@ class Conditions:
     def get_lines(self):
         r = []
         for condition, guard in self.condition_to_guard.items():
-            r.append('set -l %s "%s"' % (guard, condition))
+            r.append('set -l %s %s' % (guard, condition))
         return r
+
+class FishCompleteCommand:
+    def __init__(self, command=None):
+        self.command       = command
+        self.short_options = []
+        self.long_options  = []
+        self.old_options   = []
+        self.condition     = None
+        self.description   = None
+        self.flags         = set()
+        self.arguments     = None
+
+    def set_command(self, command):
+        self.command = command
+
+    def set_short_options(self, opts):
+        self.short_options = opts
+
+    def set_long_options(self, opts):
+        self.long_options = opts
+
+    def set_old_options(self, opts):
+        self.old_options = opts
+
+    def set_condition(self, condition):
+        self.condition = condition
+
+    def set_flags(self, flags):
+        self.flags = flags
+
+    def set_arguments(self, arguments):
+        self.arguments = arguments
+
+    def parse_args(self, args):
+        while len(args):
+            arg = args.pop(0)
+            if   arg == '-f': self.flags.add('f')
+            elif arg == '-F': self.flags.add('F')
+            elif arg == '-a': self.arguments = args.pop(0)
+            else:             raise Exception(arg)
+
+    def get(self):
+        r = ['complete']
+
+        if self.command is not None:
+            r.extend(['-c', self.command])
+
+        if self.condition is not None:
+            r.extend(['-n', self.condition])
+
+        for o in sorted(self.short_options):
+            r.extend(['-s %s' % shell.escape(o.lstrip('-'))])
+
+        for o in sorted(self.long_options):
+            r.extend(['-l %s' % shell.escape(o.lstrip('-'))])
+
+        for o in sorted(self.old_options):
+            r.extend(['-o %s' % shell.escape(o.lstrip('-'))])
+
+        if self.description is not None:
+            r.extend(['-d', self.description])
+
+        # -r -f is the same as -x
+        if 'r' in self.flags and 'f' in self.flags:
+            self.flags.add('x')
+
+        # -x implies -r -f
+        if 'x' in self.flags:
+            self.flags.discard('r')
+            self.flags.discard('f')
+
+        if len(self.flags):
+            r += ['-%s' % ''.join(self.flags)]
+
+        if self.arguments is not None:
+            r.extend(['-a', self.arguments])
+
+        return ' '.join(r)
 
 class FishCompletionGenerator:
     def __init__(self, ctxt, commandline):
@@ -165,14 +243,22 @@ class FishCompletionGenerator:
         self.command_comment = '# command %s' % ' '.join(p.prog for p in self.commandline.get_parents(include_self=True))
         self.options_for_helper = 'set -l options "%s"' % self._get_option_strings_for_helper()
 
+        complete_cmds = []
         for option in self.commandline.get_options():
-            self.complete_option(option)
+            complete_cmds.append(self.complete_option(option))
 
         for positional in self.commandline.get_positionals():
-            self.complete_positional(positional)
+            complete_cmds.append(self.complete_positional(positional))
 
         if self.commandline.get_subcommands_option():
-            self.complete_subcommands(self.commandline.get_subcommands_option())
+            complete_cmds.append(self.complete_subcommands(self.commandline.get_subcommands_option()))
+
+        for cmd in complete_cmds:
+            if True: # TODO
+                if cmd.condition is not None:
+                    cmd.condition = self.conditions.add(cmd.condition)
+
+            self.lines.append(cmd.get())
 
     def _get_option_strings_for_helper(self):
         r = []
@@ -210,22 +296,17 @@ class FishCompletionGenerator:
           conflicting_options=[],     # Only show if these options are not given on commandline
           description=None,           # Description
           positional=None,            # Only show if current word number is `positional`
+          repeatable=False,           # Positional is repeatable
           requires_argument=False,    # Option requires an argument
-          no_files=False,             # Don't use file completion
-          choices=[],                 # Add those words for completion
-          flags=set(),                # Add those flags (without leading dash)
-          when=None
+          when=None,
+          completion_args=None
         ):
 
-        r = []
+        cmd = FishCompleteCommand('$prog')
         conditions = []
-        flags = set(flags)
-
-        if no_files:
-            flags.add('f')
 
         if requires_argument:
-            flags.add('r')
+            cmd.flags.add('r')
 
         if len(positional_contains):
             for num, words in positional_contains.items():
@@ -237,7 +318,10 @@ class FishCompletionGenerator:
             conditions += [guard]
 
         if positional is not None:
-            guard = "$helper '$options' num_of_positionals -eq %d" % (positional - 1)
+            if repeatable:
+                guard = "$helper '$options' num_of_positionals -ge %d" % (positional - 1)
+            else:
+                guard = "$helper '$options' num_of_positionals -eq %d" % (positional - 1)
             conditions += [guard]
 
         if when is not None:
@@ -246,49 +330,22 @@ class FishCompletionGenerator:
 
         if len(conditions):
             conditions = ' && '.join(conditions)
+            cmd.condition = '"%s"' % conditions
 
-            if False: # TODO...
-                r += ["-n %s" % shell.escape(conditions)]
-            else:
-                r += ["-n %s" % self.conditions.add(conditions)]
-
-        for o in sorted(short_options):
-            r += ['-s %s' % shell.escape(o.lstrip('-'))]
-
-        for o in sorted(long_options):
-            r += ['-l %s' % shell.escape(o.lstrip('-'))]
-
-        for o in sorted(old_options):
-            r += ['-o %s' % shell.escape(o.lstrip('-'))]
+        cmd.short_options = short_options
+        cmd.long_options = long_options
+        cmd.old_options = old_options
 
         if description:
-            r += ['-d %s' % shell.escape(description)]
+            cmd.description = shell.escape(description)
 
-        for s in choices:
-            r += ['-a %s' % shell.escape(s)]
+        cmd.parse_args(completion_args)
 
-        # -r -f is the same as -x
-        if 'r' in flags and 'f' in flags:
-            flags.add('x')
-
-        # -x implies -r -f
-        if 'x' in flags:
-            flags.discard('r')
-            flags.discard('f')
-
-        if len(flags):
-            r += ['-%s' % ''.join(flags)]
-
-        return ('complete -c $prog %s' % ' '.join(r)).rstrip()
+        return cmd
 
     def complete_option(self, option):
         context = self.ctxt.getOptionGenerationContext(self.commandline, option)
         completion_args = self.completer.complete(context, *option.complete).get_args()
-
-        flags = set() # Drop '-f' and add it to flags
-        if len(completion_args) and completion_args[0] == '-f':
-            flags.add('f')
-            completion_args.pop(0)
 
         conflicting_options = option.get_conflicting_option_strings()
         if not option.multiple_option:
@@ -300,7 +357,7 @@ class FishCompletionGenerator:
         else:
             positional = None
 
-        r = self.make_complete(
+        return self.make_complete(
             requires_argument   = (option.takes_args is True),
             description         = option.help,
             positional          = positional,
@@ -309,33 +366,23 @@ class FishCompletionGenerator:
             long_options        = option.get_long_option_strings(),
             old_options         = option.get_old_option_strings(),
             conflicting_options = conflicting_options,
-            flags               = flags,
-            when                = option.when
+            when                = option.when,
+            completion_args     = completion_args
         )
-
-        r = ('%s %s' % (r, ' '.join(completion_args))).rstrip()
-        self.lines.append(r)
 
     def complete_positional(self, option):
         context = self.ctxt.getOptionGenerationContext(self.commandline, option)
         completion_args = self.completer.complete(context, *option.complete).get_args()
 
-        flags = set() # Drop '-f' and add it to flags
-        if len(completion_args) and completion_args[0] == '-f':
-            flags.add('f')
-            del completion_args[0]
-
-        r = self.make_complete(
+        return self.make_complete(
             requires_argument   = True,
             description         = option.help,
             positional_contains = self._get_positional_contains(option),
             positional          = option.get_positional_num(),
-            flags               = flags,
-            when                = option.when
+            repeatable          = option.repeatable,
+            when                = option.when,
+            completion_args     = completion_args
         )
-
-        r = ('%s %s' % (r, ' '.join(completion_args))).rstrip()
-        self.lines.append(r)
 
     def complete_subcommands(self, option):
         items = dict()
@@ -345,20 +392,12 @@ class FishCompletionGenerator:
         context = self.ctxt.getOptionGenerationContext(self.commandline, option)
         completion_args = self.completer.complete(context, 'choices', items).get_args()
 
-        flags = set() # Drop '-f' and add it to flags
-        if len(completion_args) and completion_args[0] == '-f':
-            flags.add('f')
-            del completion_args[0]
-
-        r = self.make_complete(
-            no_files       = True,
+        return self.make_complete(
             description    = 'Commands',
             positional_contains = self._get_positional_contains(option),
             positional     = option.get_positional_num(),
-            flags          = flags
+            completion_args = completion_args,
         )
-        r = ('%s %s' % (r, ' '.join(completion_args))).rstrip()
-        self.lines.append(r)
 
 def generate_completion(commandline, program_name=None, config=None):
     result = shell.CompletionGenerator(FishCompletionGenerator, fish_helpers.FISH_Helpers, commandline, program_name, config)

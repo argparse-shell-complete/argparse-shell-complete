@@ -634,18 +634,20 @@ __is_oldstyle_option() {
         return r.strip()
 
     def _generate_positionals_completion(self):
-        r  = '# complete positionals\n'
-        r += 'case $POSITIONAL_NUM in\n'
+        r  = '# Complete positionals\n'
         for positional in self.positionals:
-            r += '  %d)\n'  % positional.get_positional_num()
-            r += '%s;;\n'     % utils.indent(self._complete_action(positional), 4)
+            operator = '-eq'
+            if positional.repeatable:
+                operator = '-ge'
+            r += 'test "$POSITIONAL_NUM" %s %d && {\n' % (operator, positional.get_positional_num())
+            r += '%s\n}\n' % utils.indent(self._complete_action(positional), 4)
+
         if self.subcommands:
             cmds = [p.prog for p in self.subcommands.subcommands]
             complete = self.completer.choices(self.ctxt, cmds).get_command()
-            r += '  %d)\n' % self.subcommands.get_positional_num()
-            r += '%s;;\n'    % utils.indent(complete, 4)
-        r += 'esac'
-        return r
+            r += 'test "$POSITIONAL_NUM" -eq %d && {\n' % self.subcommands.get_positional_num()
+            r += '%s\n}\n' % utils.indent(complete, 4)
+        return r.strip()
 
     def _generate_subcommand_call(self):
         # This code is used to call subcommand functions

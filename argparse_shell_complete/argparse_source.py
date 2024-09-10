@@ -121,11 +121,18 @@ def ArgumentParser_to_CommandLine(parser, prog=None, description=None):
                 suboptions = ArgumentParser_to_CommandLine(data['parser'], name, data['help'])
                 subp.add_commandline_object(suboptions)
         elif not action.option_strings:
+            if action.nargs in ('+', '*'):
+                is_repeatable = True
+            elif action.nargs in (1, None):
+                is_repeatable = False
+            else:
+                raise Exception("Invalid nargs: %r" % action)
+
             commandline.add_positional(
                 metavar=action.metavar or action.dest,
                 complete=get_complete(action),
                 help=action.help,
-                #takes_args=get_takes_args(action),
+                repeatable=is_repeatable,
                 when=get_when(action)
             )
         else:

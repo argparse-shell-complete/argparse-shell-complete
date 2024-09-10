@@ -192,8 +192,11 @@ class ZshCompletionGenerator():
         return (None, option_spec)
 
     def complete_positional(self, option):
-        option_spec = "%d:%s:%s" % (
-            option.get_positional_num(),
+        positional_num = option.get_positional_num()
+        if option.repeatable:
+            positional_num = "'*'"
+        option_spec = "%s:%s:%s" % (
+            positional_num,
             shell.escape(escape_colon(option.help)) if option.help else "' '",
             self.complete(option, *option.complete)
         )

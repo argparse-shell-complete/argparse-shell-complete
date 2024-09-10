@@ -26,6 +26,7 @@ def jsonToObject(json, prog):
         commandline.add_positional(
             metavar = json_positional.get('metavar', None),
             help = json_positional.get('help', None),
+            repeatable = json_positional.get('repeatable', False),
             complete = json_positional.get('complete', None),
             when = json_positional.get('when', None)),
 
@@ -67,7 +68,7 @@ def JSON_To_Commandline(json):
 
     commandline_tree = CommandlineTree()
 
-    for commandline in json['commandlines']:
+    for commandline in json:
         commandline_tree.add_commandline(commandline)
 
     visit(commandline_tree.get_root_commandline())
@@ -111,10 +112,7 @@ def CommandLine_To_JSON(commandline, config=None):
             for parser in commandline.subcommands.subcommands:
                 get_CommandLine_Objects(parser, out_list)
 
-    root_json = OrderedDict()
-    commandline_json = root_json['commandlines'] = []
-
+    commandline_json = []
     get_CommandLine_Objects(commandline, commandline_json)
-
-    return root_json
+    return commandline_json
 

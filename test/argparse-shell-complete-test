@@ -95,7 +95,8 @@ group.add_argument('--exclusive-1', action='store_true')
 group.add_argument('--exclusive-2', action='store_true')
 
 cmdp.add_argument('positional_1', help='First positional', choices=('first1', 'first2', 'first3'))
-cmdp.add_argument('optional', help='Optional positional', choices=('optional1', 'optional2'), nargs='?')
+cmdp.add_argument('positional_2', help='Second positional', choices=('second1', 'second2'))
+cmdp.add_argument('positional_3', help='Repeated positional', choices=('repeated1', 'repeated2'), nargs='+')
 
 if __name__ == '__main__':
     argp.parse_args()

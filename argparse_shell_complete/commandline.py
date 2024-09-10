@@ -92,8 +92,8 @@ class CommandLine:
             #positional_number,
             metavar='',
             help='',
+            repeatable=False,
             complete=None,
-            #takes_args=True,
             when=None):
         '''
         Adds a new positional argument to the command line.
@@ -101,6 +101,7 @@ class CommandLine:
         Args:
             metavar (str): The metavar for the positional.
             help (str): The help message for the positional.
+            repeatable (bool): Specifies if positional can be specified more times
             complete (tuple): The completion specification for the positional.
             when (str): Specifies a condition for showing this positional. 
 
@@ -111,6 +112,7 @@ class CommandLine:
         p = Positional(self,
                        metavar=metavar,
                        help=help,
+                       repeatable=repeatable,
                        complete=complete,
                        when=when)
         self.positionals.append(p)
@@ -264,6 +266,7 @@ class CommandLine:
             copy.add_positional(
                 metavar = positional.metavar,
                 help = positional.help,
+                repeatable = positional.repeatable,
                 complete = positional.complete,
                 when = positional.when
             )
@@ -300,12 +303,12 @@ class Positional:
             metavar='',
             help='',
             complete=None,
-            #nargs
+            repeatable=False,
             when=None):
         self.parent = parent
         self.metavar = metavar
         self.help = help
-        #self.nargs = nargs
+        self.repeatable = repeatable
         self.when = when
 
         if complete:
@@ -350,6 +353,9 @@ class Positional:
 
         if self.help:
             r['help'] = self.help
+
+        if self.repeatable is not False:
+            r['repeatable'] = self.repeatable
 
         if self.when:
             r['when'] = self.when

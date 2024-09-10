@@ -816,4 +816,77 @@ foo,baz,baz  (Complete a list)\
 '''
 },
 
+{
+ 'number': 42,
+ 'description': 'Check if positionals are working (1st positional)',
+ 'send': 'argparse-shell-complete-test test ',
+ 'bash_expected': '''\
+> argparse-shell-complete-test test
+first1  first2  first3
+> argparse-shell-complete-test test first\
+''',
+ 'fish_expected': '''\
+> argparse-shell-complete-test test first
+first1  (First positional)  first3  (First positional)
+first2  (First positional)\
+''',
+ 'zsh_expected': '''\
+> argparse-shell-complete-test test first\
+'''
+},
+
+{
+ 'number': 43,
+ 'description': 'Check if positionals are working (2nd positional)',
+ 'send': 'argparse-shell-complete-test test first1 ',
+ 'bash_expected': '''\
+> argparse-shell-complete-test test first1
+second1  second2
+> argparse-shell-complete-test test first1 second\
+''',
+ 'fish_expected': '''\
+> argparse-shell-complete-test test first1 second
+second1  (Second positional)  second2  (Second positional)\
+''',
+ 'zsh_expected': '''\
+> argparse-shell-complete-test test first1 second\
+'''
+},
+
+{
+ 'number': 44,
+ 'description': 'Check if positionals are working (3rd positional)',
+ 'send': 'argparse-shell-complete-test test first1 second1 ',
+ 'bash_expected': '''\
+> argparse-shell-complete-test test first1 second1
+repeated1  repeated2
+> argparse-shell-complete-test test first1 second1 repeated\
+''',
+ 'fish_expected': '''\
+> argparse-shell-complete-test test first1 second1 repeated
+repeated1  (Repeated positional)  repeated2  (Repeated positional)\
+''',
+ 'zsh_expected': '''\
+> argparse-shell-complete-test test first1 second1 repeated\
+'''
+},
+
+{
+ 'number': 45,
+ 'description': 'Check if positionals are working (repeated positional)',
+ 'send': 'argparse-shell-complete-test test first1 second1 repeated1 ',
+ 'bash_expected': '''\
+> argparse-shell-complete-test test first1 second1 repeated1
+repeated1  repeated2
+> argparse-shell-complete-test test first1 second1 repeated1 repeated\
+''',
+ 'fish_expected': '''\
+> argparse-shell-complete-test test first1 second1 repeated1 repeated
+repeated1  (Repeated positional)  repeated2  (Repeated positional)\
+''',
+ 'zsh_expected': '''\
+> argparse-shell-complete-test test first1 second1 repeated1 repeated\
+'''
+},
+
 ]
