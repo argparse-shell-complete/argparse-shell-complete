@@ -61,19 +61,19 @@ install-completions() {
   for SHELL_ in ${SHELLS[@]}; do
     case "$SHELL_" in
       bash)
-        $argparse_shell_complete --allow-python --include-file argparse-shell-complete-test.bash \
+        $argparse_shell_complete --allow-python --include-file include.bash \
           bash argparse-shell-complete-test > "$BASH_COMPLETION_FIlE" || {
           echo "$argparse_shell_complete bash failed" >&2
           exit 1
         };;
       fish)
-        $argparse_shell_complete --allow-python --include-file argparse-shell-complete-test.fish \
+        $argparse_shell_complete --allow-python --include-file include.fish \
           fish argparse-shell-complete-test > "$FISH_COMPLETION_FILE" || {
           echo "$argparse_shell_complete fish failed" >&2
           exit 1
         };;
       zsh)
-        $argparse_shell_complete --allow-python --include-file argparse-shell-complete-test.zsh \
+        $argparse_shell_complete --allow-python --include-file include.zsh \
           zsh  argparse-shell-complete-test > "$ZSH_COMPLETION_FILE" || {
           echo "$argparse_shell_complete zsh failed" >&2
           exit 1
