@@ -145,7 +145,7 @@ class CommandLine:
             Exception: If the command line object already has subcommands.
         '''
         assert isinstance(name, str), "CommandLine.add_subcommands: name: expected str, got %r" % name
-        assert isinstance(help, str), "CommandLine.add_subcommands: help: expected str, got %r" % help
+        assert isinstance(help, (str, None.__class__)), "CommandLine.add_subcommands: help: expected str, got %r" % help
 
         if self.subcommands:
             raise Exception('CommandLine object already has subcommands')

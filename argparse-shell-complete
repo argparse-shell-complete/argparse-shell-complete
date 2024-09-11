@@ -54,6 +54,12 @@ p.add_argument('--vim-modeline', default=True, type=parse_bool,
 p.add_argument('--zsh-compdef', default=True, type=parse_bool,
     help='Sets whether #compdef is used in zsh scripts')
 
+p.add_argument('--fish-fast', default=False, type=parse_bool,
+    help='Use faster commandline parsing at the cost of correctness')
+
+p.add_argument('--fish-inline-conditions', default=False, type=parse_bool,
+    help="Don't store conditions in a variable")
+
 p.add_argument('--include-file', action='append',
     help='Include file in output').complete('file')
 
@@ -152,6 +158,8 @@ def generate(opts):
     config.set_inherit_options(opts.inherit_options)
     config.set_vim_modeline(opts.vim_modeline)
     config.set_zsh_compdef(opts.zsh_compdef)
+    config.set_fish_fast(opts.fish_fast)
+    config.set_fish_inline_conditions(opts.fish_inline_conditions)
     config.include_many_files(opts.include_file or [])
 
     r = {

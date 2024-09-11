@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+from collections import namedtuple
 import subprocess
 
 from . import shell, utils
@@ -222,6 +223,61 @@ class FishCompleteCommand:
 
         return ' '.join(r)
 
+class Conditions:
+    NumOfPositionals = namedtuple('NumOfPositionals', ['operator', 'value'])
+
+    def __init__(self):
+        self.positional_contains = dict()
+        self.not_has_option = list()
+        self.num_of_positionals = None
+
+    def get(self, unsafe=False):
+        conditions = []
+
+        for num, words in self.positional_contains.items():
+            if unsafe:
+                guard = "__fish_seen_subcommand_from %s" % (' '.join(words))
+            else:
+                guard = "$helper '$options' positional_contains %d %s" % (num, ' '.join(words))
+            conditions += [guard]
+
+        if len(self.not_has_option):
+            use_helper = False
+            if unsafe:
+                guard = "__fish_not_contain_opt"
+                for opt in self.not_has_option:
+                    if opt.startswith('--'):
+                        guard += ' %s' % opt.lstrip('-')
+                    elif opt.startswith('-') and len(opt) == 2:
+                        guard += ' -s %s' % opt[1]
+                    else:
+                        # __fish_not_contain_opt does not support oldoptions
+                        use_helper = True
+            else:
+                use_helper = True
+
+            if use_helper:
+                guard = "not $helper '$options' has_option %s" % ' '.join(self.not_has_option)
+            conditions += [guard]
+
+        if self.num_of_positionals is not None:
+            if unsafe:
+                guard = "test (__fish_number_of_cmd_args_wo_opts) %s %d" % (
+                    self.num_of_positionals.operator, self.num_of_positionals.value) # TODO - 1)
+            else:
+                guard = "$helper '$options' num_of_positionals %s %d" % (
+                    self.num_of_positionals.operator, self.num_of_positionals.value - 1)
+            conditions += [guard]
+
+        if self.when is not None:
+            guard = "$helper '$options' %s" % self.when
+            conditions += [guard]
+
+        if not conditions:
+            return None
+
+        return '"%s"' % ' && '.join(conditions)
+
 class FishCompletionGenerator:
     def __init__(self, ctxt, commandline):
         self.commandline = commandline
@@ -243,7 +299,10 @@ class FishCompletionGenerator:
             complete_cmds.append(self.complete_subcommands(self.commandline.get_subcommands_option()))
 
         for cmd in complete_cmds:
-            if True: # TODO
+            if cmd.condition and '$helper' in cmd.condition:
+                self.ctxt.helpers.use_function('fish_helper')
+
+            if not self.ctxt.config.fish_inline_conditions:
                 if cmd.condition is not None:
                     cmd.condition = self.conditions.add(cmd.condition)
 
@@ -295,36 +354,10 @@ class FishCompletionGenerator:
           when=None,
           completion_args=None
         ):
-
         cmd = FishCompleteCommand('$prog')
-        conditions = []
 
         if requires_argument:
             cmd.flags.add('r')
-
-        if len(positional_contains):
-            for num, words in positional_contains.items():
-                guard = "$helper '$options' positional_contains %d %s" % (num, ' '.join(words))
-                conditions += [guard]
-
-        if len(conflicting_options):
-            guard = "not $helper '$options' has_option %s" % ' '.join(conflicting_options)
-            conditions += [guard]
-
-        if positional is not None:
-            if repeatable:
-                guard = "$helper '$options' num_of_positionals -ge %d" % (positional - 1)
-            else:
-                guard = "$helper '$options' num_of_positionals -eq %d" % (positional - 1)
-            conditions += [guard]
-
-        if when is not None:
-            guard = "$helper '$options' %s" % when
-            conditions += [guard]
-
-        if len(conditions):
-            conditions = ' && '.join(conditions)
-            cmd.condition = '"%s"' % conditions
 
         cmd.short_options = short_options
         cmd.long_options = long_options
@@ -334,6 +367,19 @@ class FishCompletionGenerator:
             cmd.description = shell.escape(description)
 
         cmd.parse_args(completion_args)
+
+        conds = Conditions()
+        conds.positional_contains = positional_contains
+        conds.not_has_option = conflicting_options
+        conds.when = when
+
+        if positional is not None:
+            operator = '-eq'
+            if repeatable:
+                operator = '-ge'
+            conds.num_of_positionals = Conditions.NumOfPositionals(operator, positional) # -1 TODO
+
+        cmd.set_condition(conds.get(unsafe=self.ctxt.config.fish_fast))
 
         return cmd
 
@@ -392,7 +438,6 @@ class FishCompletionGenerator:
 
 def generate_completion(commandline, program_name=None, config=None):
     result = shell.CompletionGenerator(FishCompletionGenerator, fish_helpers.FISH_Helpers, commandline, program_name, config)
-    result.ctxt.helpers.use_function('fish_helper')
 
     output = []
 
@@ -408,7 +453,8 @@ def generate_completion(commandline, program_name=None, config=None):
         output.append('')
 
     output.append('set -l prog "%s"'   % result.result[0].commandline.prog)
-    output.append('set -l helper "%s"' % result.ctxt.helpers.use_function('fish_helper'))
+    if result.ctxt.helpers.is_used('fish_helper'):
+        output.append('set -l helper "%s"' % result.ctxt.helpers.use_function('fish_helper'))
 
     for generator in result.result:
         output.append('')

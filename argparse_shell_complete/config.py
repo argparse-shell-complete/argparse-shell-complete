@@ -16,6 +16,8 @@ class Config:
         self.vim_modeline = True
         self.include_files = []
         self.zsh_compdef = True
+        self.fish_fast = False
+        self.fish_inline_conditions = False
 
     def set_abbreviate_commands(self, enable):
         '''
@@ -161,4 +163,10 @@ class Config:
     def include_many_files(self, files):
         # TODO: docstring
         self.include_files.extend(files)
+
+    def set_fish_fast(self, enable):
+        self.fish_fast = enable
+
+    def set_fish_inline_conditions(self, enable):
+        self.fish_inline_conditions = enable
 

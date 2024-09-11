@@ -59,6 +59,9 @@ class GeneralHelpers():
 
         return self.get_real_function_name(function_name)
 
+    def is_used(self, function_name):
+        return function_name in self.used_functions
+
     def get_used_functions_code(self):
         r = []
         for funcname in self.used_functions:
