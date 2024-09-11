@@ -64,7 +64,7 @@ def ArgumentParser_to_CommandLine(parser, prog=None, description=None):
     if not prog:
         prog = parser.prog
 
-    commandline = CommandLine(prog, description)
+    commandline = CommandLine(prog, help=description, aliases=parser.get_aliases())
 
     for action in parser._actions:
         if isinstance(action, argparse._SubParsersAction):

@@ -5,8 +5,9 @@ from .commandline import *
 def jsonToObject(json, prog):
     commandline = CommandLine(
         prog,
-        help = json['help'],
         parent = None,
+        help = json['help'],
+        aliases = json.get('aliases', []),
         abbreviate_commands=json.get('abbreviate_commands', ExtendedBool.INHERIT),
         abbreviate_options=json.get('abbreviate_options', ExtendedBool.INHERIT),
         inherit_options=json.get('inherit_options', ExtendedBool.INHERIT))
@@ -83,7 +84,12 @@ def CommandLine_To_JSON(commandline, config=None):
         prog = ' '.join(c.prog for c in commandline.get_parents(include_self=True))
 
         commandline_json['prog'] = prog
-        commandline_json['help'] = commandline.help
+
+        if commandline.aliases:
+            commandline_json['aliases'] = commandline.aliases
+
+        if commandline.help:
+            commandline_json['help'] = commandline.help
 
         if commandline.abbreviate_commands != ExtendedBool.INHERIT:
             commandline_json['abbreviate_commands'] = commandline.abbreviate_commands

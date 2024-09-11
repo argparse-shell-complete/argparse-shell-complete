@@ -19,8 +19,9 @@ class CommandLine:
 
     def __init__(self,
                  program_name,
-                 help=None,
                  parent=None,
+                 help=None,
+                 aliases=[],
                  abbreviate_commands=ExtendedBool.INHERIT,
                  abbreviate_options=ExtendedBool.INHERIT,
                  inherit_options=ExtendedBool.INHERIT):
@@ -41,8 +42,9 @@ class CommandLine:
         assert isinstance(parent, (CommandLine, None.__class__)), "CommandLine: parent: expected CommandLine, got %r" % parent
 
         self.prog = program_name
-        self.help = help
         self.parent = parent
+        self.help = help
+        self.aliases = aliases
         self.abbreviate_commands = abbreviate_commands
         self.abbreviate_options = abbreviate_options
         self.inherit_options = inherit_options
@@ -52,8 +54,8 @@ class CommandLine:
 
     def add_option(self,
             option_strings,
-            metavar='',
-            help='',
+            metavar=None,
+            help=None,
             complete=None,
             takes_args=True,
             group=None,
@@ -90,8 +92,8 @@ class CommandLine:
 
     def add_positional(self,
             #positional_number,
-            metavar='',
-            help='',
+            metavar=None,
+            help=None,
             repeatable=False,
             complete=None,
             when=None):
@@ -128,7 +130,7 @@ class CommandLine:
         group = MutuallyExclusiveGroup(self)
         return group
 
-    def add_subcommands(self, name='command', help=''):
+    def add_subcommands(self, name='command', help=None):
         '''
         Adds a subcommands option to the command line if none exists already.
 
@@ -248,7 +250,7 @@ class CommandLine:
         '''
         Make a copy of the current CommandLine object, including sub-objects.
         '''
-        copy = CommandLine(self.prog, help=self.help, parent=None)
+        copy = CommandLine(self.prog, parent=None, help=self.help, aliases=self.aliases)
 
         for option in self.options:
             copy.add_option(
@@ -282,6 +284,7 @@ class CommandLine:
         return (
             isinstance(other, CommandLine) and
             self.prog                == other.prog and
+            self.aliases             == other.aliases and
             self.help                == other.help and
             self.abbreviate_commands == other.abbreviate_commands and
             self.abbreviate_options  == other.abbreviate_options and
@@ -300,8 +303,8 @@ class Positional:
             self,
             parent,
             #positional_number,
-            metavar='',
-            help='',
+            metavar=None,
+            help=None,
             complete=None,
             repeatable=False,
             when=None):
@@ -348,16 +351,16 @@ class Positional:
     def OrderedDict(self):
         r = OrderedDict()
 
-        if self.metavar:
+        if self.metavar is not None:
             r['metavar'] = self.metavar
 
-        if self.help:
+        if self.help is not None:
             r['help'] = self.help
 
         if self.repeatable is not False:
             r['repeatable'] = self.repeatable
 
-        if self.when:
+        if self.when is not None:
             r['when'] = self.when
 
         if self.complete and self.complete[0] != 'none':
@@ -370,8 +373,8 @@ class Option:
             self,
             parent,
             option_strings,
-            metavar='',
-            help='',
+            metavar=None,
+            help=None,
             complete=None,
             group=None,
             takes_args=True,
@@ -408,16 +411,16 @@ class Option:
         r = OrderedDict()
         r['option_strings'] = self.option_strings
 
-        if self.metavar:
+        if self.metavar is not None:
             r['metavar'] = self.metavar
 
-        if self.help:
+        if self.help is not None:
             r['help'] = self.help
 
         if self.takes_args != True:
             r['takes_args'] = self.takes_args
 
-        if self.group:
+        if self.group is not None:
             r['group'] = self.group
 
         if self.multiple_option != ExtendedBool.INHERIT:
@@ -426,7 +429,7 @@ class Option:
         if self.complete and self.complete[0] != 'none':
             r['complete'] = self.complete
 
-        if self.when:
+        if self.when is not None:
             r['when'] = self.when
 
         return r
@@ -508,7 +511,6 @@ class Option:
         )
 
     def __repr__(self):
-        # TODO
         return '{option_strings: %r, metavar: %r, help: %r}' % (
             self.option_strings, self.metavar, self.help)
 
@@ -552,8 +554,8 @@ class MutuallyExclusiveGroup:
 
     def add(self,
             option_strings,
-            metavar='',
-            help='',
+            metavar=None,
+            help=None,
             complete=None,
             takes_args=True,
             multiple_option=ExtendedBool.INHERIT):
@@ -601,6 +603,7 @@ def CommandLine_Apply_Config(commandline, config):
     for option in commandline.options:
         if option.multiple_option == ExtendedBool.INHERIT:
             option.multiple_option = config.multiple_options
+            # TODO: this shold be commandline.multiple_options
 
     if commandline.get_subcommands_option():
         for subcommand in commandline.get_subcommands_option().subcommands:
