@@ -268,11 +268,16 @@ class FishCompletionGenerator:
 
         for cmdline in cmdlines:
             if self.commandline.abbreviate_commands:
-                abbrev = utils.CommandAbbreviationGenerator(cmdline.parent.get_subcommands_option().subcommands.keys())
+                abbrev = utils.CommandAbbreviationGenerator(
+                    cmdline.parent.get_subcommands_option().get_all_subcommands(with_aliases=False))
             else:
                 abbrev = utils.DummyAbbreviationGenerator()
 
-            r[cmdline.parent.get_subcommands_option().get_positional_num()] = abbrev.get_abbreviations(cmdline.prog)
+            cmds = abbrev.get_abbreviations(cmdline.prog)
+            for alias in cmdline.aliases:
+                cmds.append(alias)
+
+            r[cmdline.parent.get_subcommands_option().get_positional_num()] = cmds
 
         return r
 
@@ -374,10 +379,7 @@ class FishCompletionGenerator:
         )
 
     def complete_subcommands(self, option):
-        items = dict()
-        for subcommand in option.subcommands:
-            items[subcommand.prog] = subcommand.help
-
+        items = option.get_all_subcommands()
         context = self.ctxt.getOptionGenerationContext(self.commandline, option)
         completion_args = self.completer.complete(context, 'choices', items).get_args()
 

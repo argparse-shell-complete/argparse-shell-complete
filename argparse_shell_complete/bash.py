@@ -631,7 +631,7 @@ __is_oldstyle_option() {
             r += '%s\n}\n' % utils.indent(self._complete_action(positional), 4)
 
         if self.subcommands:
-            cmds = [p.prog for p in self.subcommands.subcommands]
+            cmds = self.subcommands.get_all_subcommands().keys()
             complete = self.completer.choices(self.ctxt, cmds).get_command()
             r += 'test "$POSITIONAL_NUM" -eq %d && {\n' % self.subcommands.get_positional_num()
             r += '%s\n}\n' % utils.indent(complete, 4)
@@ -641,16 +641,19 @@ __is_oldstyle_option() {
         # This code is used to call subcommand functions
 
         if self.commandline.abbreviate_commands:
-            abbrevs = utils.CommandAbbreviationGenerator(self.subcommands.subcommands.keys())
+            abbrevs = utils.CommandAbbreviationGenerator(
+                self.subcommands.get_all_subcommands(with_aliases=False).keys())
         else:
             abbrevs = utils.DummyAbbreviationGenerator()
 
         r  = 'if (( %i < POSITIONAL_NUM )); then\n' % (self.subcommands.get_positional_num() - 1)
         r += '  case "${POSITIONALS[%i]}" in\n' % (self.subcommands.get_positional_num() - 1)
         for subcommand in self.subcommands.subcommands:
-            name = subcommand.prog
-            pattern = '|'.join([shell.escape(n) for n in abbrevs.get_abbreviations(name)])
+            cmds = abbrevs.get_abbreviations(subcommand.prog)
+            for alias in subcommand.aliases:
+                cmds.append(alias)
 
+            pattern = '|'.join(shell.escape(s) for s in cmds)
             if self.commandline.inherit_options:
                 r += '    %s) %s && return 0;;\n' % (pattern, shell.make_completion_funcname(subcommand))
             else:

@@ -180,10 +180,7 @@ class ZshCompletionGenerator():
         return (option.when, option_spec)
 
     def complete_subcommands(self, option):
-        choices = {}
-        for subcommand in option.subcommands:
-            choices[subcommand.prog] = subcommand.help
-
+        choices = option.get_all_subcommands()
         self.command_counter += 1
 
         option_spec = "%d:command%d:%s" % (
@@ -246,7 +243,10 @@ class ZshCompletionGenerator():
         r =  'case "$(%s get_positional %d)" in\n' % (zsh_helper, self.subcommands.get_positional_num())
         for subcommand in self.subcommands.subcommands:
             sub_funcname = shell.make_completion_funcname(subcommand)
-            pattern = '|'.join(abbrevs.get_abbreviations(subcommand.prog))
+            cmds = abbrevs.get_abbreviations(subcommand.prog)
+            for alias in subcommand.aliases:
+                cmds.append(alias)
+            pattern = '|'.join(shell.escape(s) for s in cmds)
             r += f'  ({pattern}) {sub_funcname}; return $?;;\n'
         r += 'esac'
 

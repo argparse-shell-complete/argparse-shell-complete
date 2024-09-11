@@ -532,6 +532,15 @@ class SubCommandsOption(Positional):
         self.subcommands.append(commandline)
         return commandline
 
+    def get_all_subcommands(self, with_aliases=True):
+        r = OrderedDict()
+        for subcommand in self.subcommands:
+            r[subcommand.prog] = subcommand.help
+            if with_aliases:
+                for alias in subcommand.aliases:
+                    r[alias] = subcommand.help
+        return r
+
     def __eq__(self, other):
         return (
             isinstance(other, SubCommandsOption) and

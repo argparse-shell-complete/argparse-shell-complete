@@ -8,38 +8,39 @@ tests = [
  'send': 'argparse-shell-complete-test ',
  'bash_expected': '''\
 > argparse-shell-complete-test
-argparse-actions  subcommand        when
-complete          test
+alias1            argparse-actions  subcommand        when
+alias2            complete          test
 > argparse-shell-complete-test\
 ''',
  'fish_expected': '''\
 > argparse-shell-complete-test
-argparse-actions  (argparse tool actions)  test  (For testing the completer)
-complete         (Test complete commands)  when    (Test the "when"-feature)
-subcommand      (Test nested subcommands)\
+alias1        (For testing the completer)  subcommand  (Test nested subcommands)
+alias2        (For testing the completer)  test      (For testing the completer)
+argparse-actions  (argparse tool actions)  when        (Test the "when"-feature)
+complete         (Test complete commands)\
 ''',
  'zsh_expected': '''\
 > argparse-shell-complete-test
-argparse-actions  -- argparse tool actions
-complete          -- Test complete commands
-subcommand        -- Test nested subcommands
-test              -- For testing the completer
-when              -- Test the "when"-feature\
+alias2            alias1  test  -- For testing the completer
+argparse-actions                -- argparse tool actions
+complete                        -- Test complete commands
+subcommand                      -- Test nested subcommands
+when                            -- Test the "when"-feature\
 '''
 },
 
 {
  'number': 2,
  'description': 'Check if subcommand is completed',
- 'send': 'argparse-shell-complete-test a',
+ 'send': 'argparse-shell-complete-test t',
  'bash_expected': '''\
-> argparse-shell-complete-test argparse-actions\
+> argparse-shell-complete-test test\
 ''',
  'fish_expected': '''\
-> argparse-shell-complete-test argparse-actions\
+> argparse-shell-complete-test test\
 ''',
  'zsh_expected': '''\
-> argparse-shell-complete-test argparse-actions\
+> argparse-shell-complete-test test\
 '''
 },
 
@@ -926,6 +927,44 @@ repeated1  (Repeated positional)  repeated2  (Repeated positional)\
 ''',
  'zsh_expected': '''\
 > argparse-shell-complete-test test first1 second1 repeated1 repeated\
+'''
+},
+
+{
+ 'number': 48,
+ 'description': 'Check if aliases are working (alias1)',
+ 'send': 'argparse-shell-complete-test alias1 --arg ',
+ 'bash_expected': '''\
+> argparse-shell-complete-test alias1 --arg
+1  2  3
+> argparse-shell-complete-test alias1 --arg\
+''',
+ 'fish_expected': '''\
+> argparse-shell-complete-test alias1 --arg
+1  (Option with arg)  2  (Option with arg)  3  (Option with arg)\
+''',
+ 'zsh_expected': '''\
+> argparse-shell-complete-test alias1 --arg
+1  2  3\
+'''
+},
+
+{
+ 'number': 49,
+ 'description': 'Check if aliases are working (alias2)',
+ 'send': 'argparse-shell-complete-test alias2 --arg ',
+ 'bash_expected': '''\
+> argparse-shell-complete-test alias2 --arg
+1  2  3
+> argparse-shell-complete-test alias2 --arg\
+''',
+ 'fish_expected': '''\
+> argparse-shell-complete-test alias2 --arg
+1  (Option with arg)  2  (Option with arg)  3  (Option with arg)\
+''',
+ 'zsh_expected': '''\
+> argparse-shell-complete-test alias2 --arg
+1  2  3\
 '''
 },
 

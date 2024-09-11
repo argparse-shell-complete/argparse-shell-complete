@@ -82,7 +82,7 @@ cmdp1.add_argument('--sub-subcommand-choices',    help='Complete from choices', 
 # =============================================================================
 # Command 'test'
 # =============================================================================
-cmdp = subp.add_parser('test',  help='For testing the completer')
+cmdp = subp.add_parser('test',  help='For testing the completer').aliases(['alias1', 'alias2'])
 
 cmdp.add_argument('-F', '-flag',     '--flag',       help='A option flag', action='store_true')
 cmdp.add_argument('-O', '-optional', '--optional',   help='Option with optional arg', nargs='?', choices=(1,2,3))

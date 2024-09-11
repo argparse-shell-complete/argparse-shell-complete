@@ -33,6 +33,7 @@ def _action_get_multiple_option(self):
 
 def _parser_aliases(self, aliases):
     setattr(self, '_aliases', aliases)
+    return self
 
 
 def _parser_get_aliases(self):
