@@ -87,43 +87,58 @@ def escape_square_brackets(s):
 def make_argument_option_spec(
         option_strings,
         conflicting_options = [],
-        description = '',
+        description = None,
         takes_args = False,
         multiple_option = False,
-        metavar = '',
-        action = ''
+        metavar = None,
+        action = None
     ):
-    # Any literal colon in an optname, message, or action must be preceded by a backslash, `\:'.
-    conflicting_options = [escape_colon(s) for s in sorted(conflicting_options)]
-    option_strings      = [escape_colon(s) for s in sorted(option_strings)]
-    description         = '[%s]' % escape_colon(escape_square_brackets(description)) if description else ''
-    if not metavar:
-        metavar = ''
-    metavar             = escape_colon(metavar)
+    # Return something like this:
+    #   (--option -o){--option=,-o+}[Option description]:Metavar:Action
 
-    conflicting_options += option_strings
+    result = []
 
-    if len(conflicting_options) > 1:
-        conflicting_options = shell.escape("(%s)" % ' '.join(s for s in conflicting_options))
-    else:
-        conflicting_options = ''
+    # Not options =============================================================
+    not_options = []
 
+    for o in sorted(conflicting_options):
+        not_options.append(escape_colon(o))
+
+    if not multiple_option:
+        for o in sorted(option_strings):
+            not_options.append(escape_colon(o))
+
+    if len(not_options):
+        result.append(shell.escape('(%s)' % ' '.join(not_options)))
+
+    # Multiple option =========================================================
+    if multiple_option:
+        result.append("'*'")
+
+    # Option strings ==========================================================
     if takes_args == '?':
-        option_strings = [o+'-' if len(o) == 2 else o+'=-' for o in option_strings]
+        opts = [o+'-' if len(o) == 2 else o+'=-' for o in option_strings]
     elif takes_args:
-        option_strings = [o+'+' if len(o) == 2 else o+'=' for o in option_strings]
-
-    if len(option_strings) == 1:
-        option_strings = option_strings[0]
+        opts = [o+'+' if len(o) == 2 else o+'=' for o in option_strings]
     else:
-        option_strings = '{%s}' % ','.join(option_strings)
+        opts = option_strings
 
-    description = shell.escape(description, escape_empty_string=False)
-    metavar = shell.escape(metavar, escape_empty_string=False)
-    multiple_option = "'*'" if multiple_option else ''
+    if len(opts) == 1:
+        result.append(opts[0])
+    else:
+        result.append('{%s}' % ','.join(opts))
 
-    # '(--option -o)'{--option=,-o+}'[Option description]':Metavar:'action'
-    return f'{conflicting_options}{multiple_option}{option_strings}{description}:{metavar}:{action}'
+    # Description =============================================================
+    if description is not None:
+        result.append(shell.escape('[%s]' % escape_colon(escape_square_brackets(description))))
+
+    if takes_args is True or takes_args == '?':
+        if metavar:
+            result.append(':%s:%s' % (shell.escape(escape_colon(metavar)), action))
+        else:
+            result.append('::%s' % action)
+
+    return ''.join(result)
 
 class ZshCompletionGenerator():
     def __init__(self, ctxt, commandline):

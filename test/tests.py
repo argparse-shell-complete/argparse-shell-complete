@@ -74,13 +74,13 @@ when              -- Test the "when"-feature\
  'zsh_expected': '''\
 > argparse-shell-complete-test test -
 --exclusive-1      --exclusive-2      --multiple-arg     --multiple-flag
---arg                           -A
--arg                                -- Option with arg
---flag                          -F
--flag                               -- A option flag
+--arg
+-arg                            -A  -- Option with arg
+--flag
+-flag                           -F  -- A option flag
 --help                          -h  -- show this help message and exit
---optional                      -O
--optional                           -- Option with optional arg
+--optional
+-optional                       -O  -- Option with optional arg
 --special-chars-in-description      -- Here are some special chars: $"'\\[]*`)\
 '''
 },
@@ -339,7 +339,6 @@ when              -- Test the "when"-feature\
 {
  'number': 17,
  'description': 'Check option stacking (with required argument and space)',
- 'comment': 'ZSH does not provide an argument for -A',
  'send': 'argparse-shell-complete-test test -FA ',
  'bash_expected': '''\
 > argparse-shell-complete-test test -FA
@@ -352,7 +351,7 @@ when              -- Test the "when"-feature\
 ''',
  'zsh_expected': '''\
 > argparse-shell-complete-test test -FA
-first1  first2  first3\
+1  2  3\
 '''
 },
 
