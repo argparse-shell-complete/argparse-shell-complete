@@ -65,6 +65,7 @@ def ArgumentParser_to_CommandLine(parser, prog=None, description=None):
         prog = parser.prog
 
     commandline = CommandLine(prog, help=description, aliases=parser.get_aliases())
+    number = 0
 
     for action in parser._actions:
         if isinstance(action, argparse._SubParsersAction):
@@ -89,7 +90,9 @@ def ArgumentParser_to_CommandLine(parser, prog=None, description=None):
             else:
                 raise Exception("Invalid nargs: %r" % action)
 
+            number += 1
             commandline.add_positional(
+                number,
                 metavar=action.metavar or action.dest,
                 complete=get_complete(action),
                 help=action.help,

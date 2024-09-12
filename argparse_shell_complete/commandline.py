@@ -91,7 +91,7 @@ class CommandLine:
         return o
 
     def add_positional(self,
-            #positional_number,
+            number,
             metavar=None,
             help=None,
             repeatable=False,
@@ -105,13 +105,14 @@ class CommandLine:
             help (str): The help message for the positional.
             repeatable (bool): Specifies if positional can be specified more times
             complete (tuple): The completion specification for the positional.
-            when (str): Specifies a condition for showing this positional. 
+            when (str): Specifies a condition for showing this positional.
 
         Returns:
             Positional: The newly added Positional object.
         '''
 
         p = Positional(self,
+                       number,
                        metavar=metavar,
                        help=help,
                        repeatable=repeatable,
@@ -242,6 +243,14 @@ class CommandLine:
 
         return parents
 
+    def get_highest_positional_num(self):
+        highest = 0
+        for positional in self.positionals:
+            highest = max(highest, positional.number)
+        if self.subcommands:
+            highest += 1
+        return highest
+
     def get_program_name(self):
         commandlines = self.get_parents(include_self=True)
         return commandlines[0].prog
@@ -273,6 +282,7 @@ class CommandLine:
 
         for positional in self.positionals:
             copy.add_positional(
+                positional.number,
                 metavar = positional.metavar,
                 help = positional.help,
                 repeatable = positional.repeatable,
@@ -309,13 +319,17 @@ class Positional:
     def __init__(
             self,
             parent,
-            #positional_number,
+            number,
             metavar=None,
             help=None,
             complete=None,
             repeatable=False,
             when=None):
+
+        assert isinstance(number, int), "Positional: number: expected int, got %r" % number
+
         self.parent = parent
+        self.number = number
         self.metavar = metavar
         self.help = help
         self.repeatable = repeatable
@@ -333,14 +347,18 @@ class Positional:
         Returns:
             int: The index of the positional argument.
         '''
-        positionals = []
+        positional_no = self.number - 1
 
-        for commandline in self.parent.get_parents(include_self=True):
-            positionals.extend(commandline.get_positionals())
+        for commandline in self.parent.get_parents():
+            highest = 0
+            for positional in commandline.get_positionals():
+                highest = max(highest, positional.number)
+            positional_no += highest
+
             if commandline.get_subcommands_option():
-                positionals.append(commandline.get_subcommands_option())
+                positional_no += 1
 
-        return positionals.index(self)
+        return positional_no
 
     def get_positional_num(self):
         '''
@@ -357,6 +375,8 @@ class Positional:
 
     def OrderedDict(self):
         r = OrderedDict()
+
+        r['number'] = self.number
 
         if self.metavar is not None:
             r['metavar'] = self.metavar
@@ -527,6 +547,7 @@ class SubCommandsOption(Positional):
 
         super().__init__(
             parent,
+            parent.get_highest_positional_num() + 1,
             metavar='command',
             help=help)
 

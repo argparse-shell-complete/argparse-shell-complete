@@ -440,8 +440,8 @@ done'''
                 self.name = name
                 self.code = []
 
-            def add(self, completion_code, option_strings):
-                r  = '%s)\n' % '|'.join(option_strings)
+            def add(self, completion_code, option):
+                r  = '%s)\n' % '|'.join(option.option_strings)
                 if completion_code:
                     r += '%s\n' % utils.indent(completion_code, 2)
                 r += '  return 0;;'
@@ -507,7 +507,7 @@ done'''
             old_option_strings   = option.get_old_option_strings()
             completion_code      = self._complete_action(option, False)
 
-            complete_options.add(completion_code, option.option_strings)
+            complete_options.add(completion_code, option)
 
             if len(short_option_strings):
                 if option.takes_args == '?':
@@ -627,7 +627,10 @@ __is_oldstyle_option() {
             operator = '-eq'
             if positional.repeatable:
                 operator = '-ge'
-            r += 'test "$POSITIONAL_NUM" %s %d && {\n' % (operator, positional.get_positional_num())
+            r += 'test "$POSITIONAL_NUM" %s %d && ' % (operator, positional.get_positional_num())
+            if positional.when:
+                r += '%s && ' % self._generate_when_conditions(positional.when)
+            r += '{\n'
             r += '%s\n}\n' % utils.indent(self._complete_action(positional), 4)
 
         if self.subcommands:

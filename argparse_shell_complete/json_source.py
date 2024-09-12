@@ -6,7 +6,7 @@ def jsonToObject(json, prog):
     commandline = CommandLine(
         prog,
         parent = None,
-        help = json['help'],
+        help = json.get('help', None),
         aliases = json.get('aliases', []),
         abbreviate_commands=json.get('abbreviate_commands', ExtendedBool.INHERIT),
         abbreviate_options=json.get('abbreviate_options', ExtendedBool.INHERIT),
@@ -25,6 +25,7 @@ def jsonToObject(json, prog):
 
     for json_positional in json.get('positionals', []):
         commandline.add_positional(
+            json_positional['number'],
             metavar = json_positional.get('metavar', None),
             help = json_positional.get('help', None),
             repeatable = json_positional.get('repeatable', False),

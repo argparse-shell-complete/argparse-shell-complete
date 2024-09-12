@@ -132,10 +132,10 @@ def make_argument_option_spec(
         result.append(shell.escape('[%s]' % escape_colon(escape_square_brackets(description))))
 
     if takes_args is True or takes_args == '?':
-        if metavar:
-            result.append(':%s:%s' % (shell.escape(escape_colon(metavar)), action))
-        else:
-            result.append('::%s' % action)
+        if metavar is None:
+            metavar = ' '
+
+        result.append(':%s:%s' % (shell.escape(escape_colon(metavar)), action))
 
     return ''.join(result)
 
@@ -196,11 +196,11 @@ class ZshCompletionGenerator():
             positional_num = "'*'"
         option_spec = "%s:%s:%s" % (
             positional_num,
-            shell.escape(escape_colon(option.help)) if option.help else "",
+            shell.escape(escape_colon(option.help or ' ')),
             self.complete(option, *option.complete)
         )
 
-        return (None, option_spec)
+        return (option.when, option_spec)
 
     def _generate_completion_function(self):
         code = []
