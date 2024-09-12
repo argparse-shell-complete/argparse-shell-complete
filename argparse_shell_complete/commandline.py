@@ -250,7 +250,14 @@ class CommandLine:
         '''
         Make a copy of the current CommandLine object, including sub-objects.
         '''
-        copy = CommandLine(self.prog, parent=None, help=self.help, aliases=self.aliases)
+        copy = CommandLine(
+            self.prog,
+            parent=None,
+            help=self.help,
+            aliases=self.aliases,
+            abbreviate_commands=self.abbreviate_commands,
+            abbreviate_options=self.abbreviate_options,
+            inherit_options=self.inherit_options)
 
         for option in self.options:
             copy.add_option(
