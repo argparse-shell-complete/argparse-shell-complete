@@ -84,7 +84,7 @@ def ArgumentParser_to_CommandLine(parser, prog=None, description=None):
         elif not action.option_strings:
             if action.nargs in ('+', '*'):
                 is_repeatable = True
-            elif action.nargs in (1, None):
+            elif action.nargs in (1, None, '?'):
                 is_repeatable = False
             else:
                 raise Exception("Invalid nargs: %r" % action)
