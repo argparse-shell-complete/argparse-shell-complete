@@ -11,17 +11,17 @@ from .fish_utils import *
 
 def get_completions_file(program_name):
     command = ['pkg-config', '--variable=completionsdir', 'fish']
+    directory = '/usr/share/fish/vendor_completions.d'
     try:
-        # throws FileNotFoundError if command is not available
-        result = subprocess.run(command, capture_output=True, text=True)
-        if result.returncode != 0:
-            raise Exception('returncode != 0')
-        dir = result.stdout.strip()
-    except:
-        utils.warn('%s failed' % ' '.join(command))
-        dir = '/usr/share/fish/vendor_completions.d'
+        result = subprocess.run(command, stderr=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+        if result.returncode == 0:
+            directory = result.stdout.strip()
+        else:
+            utils.warn('%s failed: %s' % (' '.join(command), result.stderr.strip()))
+    except FileNotFoundError:
+        utils.warn('program `pkg-config` not found')
 
-    return '%s/%s.fish' % (dir, program_name)
+    return '%s/%s.fish' % (directory, program_name)
 
 class FishCompletionBase():
     def get_args(self):
