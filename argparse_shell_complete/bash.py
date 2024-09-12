@@ -673,7 +673,7 @@ __is_oldstyle_option() {
             self.result = r
             return
 
-        code        = []
+        code = []
 
         if self.commandline.parent is None:
             # The root parser makes those variables local and sets up the completion.
