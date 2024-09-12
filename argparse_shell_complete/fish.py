@@ -7,6 +7,7 @@ from . import shell, utils
 from . import helpers, fish_helpers
 from . import modeline
 from . import generation_notice
+from .fish_utils import *
 
 def get_completions_file(program_name):
     command = ['pkg-config', '--variable=completionsdir', 'fish']
@@ -38,7 +39,7 @@ class FishCompletionCommand(FishCompletionBase):
         self.command = command
 
     def get_args(self):
-        return ['-f', '-a', shell.escape('(%s)' % self.command)]
+        return ['-f', '-a', '(%s)' % self.command]
 
 class FishCompleter(shell.ShellCompleter):
     def none(self, ctxt):
@@ -56,7 +57,7 @@ class FishCompleter(shell.ShellCompleter):
             funcname = ctxt.helpers.use_function(funcname)
             return FishCompletionCommand(funcname)
 
-        return FishCompletionFromArgs(['-f', '-a', shell.escape(' '.join(shell.escape(str(c)) for c in choices))])
+        return FishCompletionFromArgs(['-f', '-a', ' '.join(shell.escape(str(c)) for c in choices)])
 
     def command(self, ctxt):
         return FishCompletionCommand("__fish_complete_command")
@@ -119,109 +120,6 @@ class FishCompleter(shell.ShellCompleter):
 
         cmd = '__fish_complete_list %s %s' % (shell.escape(separator), funcname)
         return FishCompletionCommand(cmd)
-
-# =============================================================================
-# Helper function for creating a `complete` command in fish
-# =============================================================================
-
-class VariableManager:
-    def __init__(self, variable_name):
-        self.variable_name = variable_name
-        self.value_to_variable  = {}
-        self.counter = 0
-
-    def add(self, value):
-        if value in self.value_to_variable:
-            return '$%s' % self.value_to_variable[value]
-
-        var = '%s%03d' % (self.variable_name, self.counter)
-        self.value_to_variable[value] = var
-        self.counter += 1
-        return '$%s' % var
-
-    def get_lines(self):
-        r = []
-        for value, variable in self.value_to_variable.items():
-            r.append('set -l %s %s' % (variable, value))
-        return r
-
-class FishCompleteCommand:
-    def __init__(self, command=None):
-        self.command       = command
-        self.short_options = []
-        self.long_options  = []
-        self.old_options   = []
-        self.condition     = None
-        self.description   = None
-        self.flags         = set()
-        self.arguments     = None
-
-    def set_command(self, command):
-        self.command = command
-
-    def set_short_options(self, opts):
-        self.short_options = opts
-
-    def set_long_options(self, opts):
-        self.long_options = opts
-
-    def set_old_options(self, opts):
-        self.old_options = opts
-
-    def set_condition(self, condition):
-        self.condition = condition
-
-    def set_flags(self, flags):
-        self.flags = flags
-
-    def set_arguments(self, arguments):
-        self.arguments = arguments
-
-    def parse_args(self, args):
-        while len(args):
-            arg = args.pop(0)
-            if   arg == '-f': self.flags.add('f')
-            elif arg == '-F': self.flags.add('F')
-            elif arg == '-a': self.arguments = args.pop(0)
-            else:             raise Exception(arg)
-
-    def get(self):
-        r = ['complete']
-
-        if self.command is not None:
-            r.extend(['-c', self.command])
-
-        if self.condition is not None:
-            r.extend(['-n', self.condition])
-
-        for o in sorted(self.short_options):
-            r.extend(['-s %s' % shell.escape(o.lstrip('-'))])
-
-        for o in sorted(self.long_options):
-            r.extend(['-l %s' % shell.escape(o.lstrip('-'))])
-
-        for o in sorted(self.old_options):
-            r.extend(['-o %s' % shell.escape(o.lstrip('-'))])
-
-        if self.description is not None:
-            r.extend(['-d', self.description])
-
-        # -r -f is the same as -x
-        if 'r' in self.flags and 'f' in self.flags:
-            self.flags.add('x')
-
-        # -x implies -r -f
-        if 'x' in self.flags:
-            self.flags.discard('r')
-            self.flags.discard('f')
-
-        if len(self.flags):
-            r += ['-%s' % ''.join(self.flags)]
-
-        if self.arguments is not None:
-            r.extend(['-a', self.arguments])
-
-        return ' '.join(r)
 
 class Conditions:
     NumOfPositionals = namedtuple('NumOfPositionals', ['operator', 'value'])
@@ -299,12 +197,12 @@ class FishCompletionGenerator:
             complete_cmds.append(self.complete_subcommands(self.commandline.get_subcommands_option()))
 
         for cmd in complete_cmds:
-            if cmd.condition and '$helper' in cmd.condition:
+            if cmd.condition is not None and '$helper' in cmd.condition.s:
                 self.ctxt.helpers.use_function('fish_helper')
 
             if not self.ctxt.config.fish_inline_conditions:
                 if cmd.condition is not None:
-                    cmd.condition = self.conditions.add(cmd.condition)
+                    cmd.set_condition(self.conditions.add(cmd.condition.s), raw=True)
 
             self.lines.append(cmd.get())
 
@@ -354,17 +252,17 @@ class FishCompletionGenerator:
           when=None,
           completion_args=None
         ):
-        cmd = FishCompleteCommand('$prog')
+        cmd = FishCompleteCommand()
+        cmd.set_command('$prog', raw=True)
+        cmd.add_short_options(short_options)
+        cmd.add_long_options(long_options)
+        cmd.add_old_options(old_options)
+
+        if description:
+            cmd.set_description(description)
 
         if requires_argument:
             cmd.flags.add('r')
-
-        cmd.short_options = short_options
-        cmd.long_options = long_options
-        cmd.old_options = old_options
-
-        if description:
-            cmd.description = shell.escape(description)
 
         cmd.parse_args(completion_args)
 
@@ -379,7 +277,7 @@ class FishCompletionGenerator:
                 operator = '-ge'
             conds.num_of_positionals = Conditions.NumOfPositionals(operator, positional) # -1 TODO
 
-        cmd.set_condition(conds.get(unsafe=self.ctxt.config.fish_fast))
+        cmd.set_condition(conds.get(unsafe=self.ctxt.config.fish_fast), raw=True)
 
         return cmd
 
