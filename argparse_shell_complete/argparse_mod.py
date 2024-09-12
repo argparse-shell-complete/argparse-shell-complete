@@ -4,6 +4,7 @@ import argparse
 
 from .commandline import *
 
+
 def _action_complete(self, command, *args):
     setattr(self, '_complete', (command, *args))
     return self
@@ -31,6 +32,11 @@ def _action_get_multiple_option(self):
     return getattr(self, '_multiple_option', ExtendedBool.INHERIT)
 
 
+def _parser_alias(self, alias):
+    setattr(self, '_aliases', [alias])
+    return self
+
+
 def _parser_aliases(self, aliases):
     setattr(self, '_aliases', aliases)
     return self
@@ -47,4 +53,5 @@ argparse.Action.get_when = _action_get_when
 argparse.Action.set_multiple_option = _action_set_multiple_option
 argparse.Action.get_multiple_option = _action_get_multiple_option
 argparse.ArgumentParser.aliases = _parser_aliases
+argparse.ArgumentParser.alias = _parser_alias
 argparse.ArgumentParser.get_aliases = _parser_get_aliases
