@@ -15,7 +15,6 @@ class ZshCompleter(shell.ShellCompleter):
 
     def choices(self, ctxt, choices):
         if hasattr(choices, 'items'):
-            # TODO: escape value and description
             funcname = shell.make_completion_funcname_for_context(ctxt)
             code  = 'local -a DESCRIBE=(\n'
             for item, description in choices.items():
@@ -197,7 +196,7 @@ class ZshCompletionGenerator():
             positional_num = "'*'"
         option_spec = "%s:%s:%s" % (
             positional_num,
-            shell.escape(escape_colon(option.help)) if option.help else "' '",
+            shell.escape(escape_colon(option.help)) if option.help else "",
             self.complete(option, *option.complete)
         )
 
@@ -233,6 +232,7 @@ class ZshCompletionGenerator():
             return ''
 
         if self.commandline.abbreviate_commands:
+            # TODO?
             commands = [p.prog for p in self.subcommands.subcommands]
             abbrevs = utils.CommandAbbreviationGenerator(commands)
         else:
