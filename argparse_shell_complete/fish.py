@@ -354,6 +354,10 @@ def generate_completion(commandline, program_name=None, config=None):
     if result.ctxt.helpers.is_used('fish_helper'):
         output.append('set -l helper "%s"' % result.ctxt.helpers.use_function('fish_helper'))
 
+    output.append('')
+    output.append('# Generally disable file completion')
+    output.append('complete -c $prog -x')
+
     for generator in result.result:
         output.append('')
         output.append(generator.command_comment)

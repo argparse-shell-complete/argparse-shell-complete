@@ -115,7 +115,7 @@ when                            -- Test the "when"-feature\
 > argparse-shell-complete-test test --arg=\
 ''',
  'fish_expected': '''\
-> argparse-shell-complete-test test --arg=argparse-shell-complete-test
+> argparse-shell-complete-test test --arg=
 --arg=1  (Option with arg)  --arg=3  (Option with arg)
 --arg=2  (Option with arg)\
 ''',
@@ -192,7 +192,7 @@ when                            -- Test the "when"-feature\
 > argparse-shell-complete-test test -arg=\
 ''',
  'fish_expected': '''\
-> argparse-shell-complete-test test -arg=argparse-shell-complete-test
+> argparse-shell-complete-test test -arg=
 -arg=1  (Option with arg)  -arg=2  (Option with arg)  -arg=3  (Option with arg)\
 ''',
  'zsh_expected': '''\
@@ -211,7 +211,7 @@ when                            -- Test the "when"-feature\
 > argparse-shell-complete-test test --optional=\
 ''',
  'fish_expected': '''\
-> argparse-shell-complete-test test --optional=argparse-shell-complete-test
+> argparse-shell-complete-test test --optional=
 …optional=1  (Option with optional arg)  …optional=3  (Option with optional arg)
 …optional=2  (Option with optional arg)\
 ''',
@@ -253,7 +253,7 @@ when                            -- Test the "when"-feature\
 > argparse-shell-complete-test test -optional=\
 ''',
  'fish_expected': '''\
-> argparse-shell-complete-test test -optional=argparse-shell-complete-test
+> argparse-shell-complete-test test -optional=
 …optional=1  (Option with optional arg)  …optional=3  (Option with optional arg)
 …optional=2  (Option with optional arg)\
 ''',
