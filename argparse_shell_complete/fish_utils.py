@@ -35,6 +35,7 @@ class FishString:
             raw (bool, optional): If True, indicates that the string `s` is already escaped
                                   and should not be escaped again. Defaults to False.
         '''
+        assert isinstance(s, str)
         self.s = s
         self.raw = raw
 
@@ -73,10 +74,16 @@ class FishCompleteCommand:
         self.flags         = set()
 
     def set_command(self, command, raw=False):
-        self.command = FishString(command, raw)
+        if command is None:
+            self.command = None
+        else:
+            self.command = FishString(command, raw)
 
     def set_description(self, description, raw=False):
-        self.description = FishString(description, raw)
+        if description is None:
+            self.description = None
+        else:
+            self.description = FishString(description, raw)
 
     def add_short_options(self, opts, raw=False):
         self.short_options.extend(FishString(o.lstrip('-'), raw) for o in opts)
@@ -88,10 +95,16 @@ class FishCompleteCommand:
         self.old_options.extend(FishString(o.lstrip('-'), raw) for o in opts)
 
     def set_condition(self, condition, raw=False):
-        self.condition = FishString(condition, raw)
+        if condition is None:
+            self.condition = None
+        else:
+            self.condition = FishString(condition, raw)
 
     def set_arguments(self, arguments, raw=False):
-        self.arguments = FishString(arguments, raw)
+        if arguments is None:
+            self.arguments = None
+        else:
+            self.arguments = FishString(arguments, raw)
 
     def add_flag(self, flag):
         self.flags.add(flag)
