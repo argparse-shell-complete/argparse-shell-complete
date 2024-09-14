@@ -46,6 +46,12 @@ def _parser_get_aliases(self):
     return getattr(self, '_aliases', [])
 
 
+def _parser_remove_help(self):
+    self._actions.pop(0)
+    self._option_string_actions.pop('-h')
+    self._option_string_actions.pop('--help')
+
+
 argparse.Action.complete = _action_complete
 argparse.Action.get_complete = _action_get_complete
 argparse.Action.when = _action_when
@@ -55,3 +61,4 @@ argparse.Action.get_multiple_option = _action_get_multiple_option
 argparse.ArgumentParser.aliases = _parser_aliases
 argparse.ArgumentParser.alias = _parser_alias
 argparse.ArgumentParser.get_aliases = _parser_get_aliases
+argparse.ArgumentParser.remove_help = _parser_remove_help
