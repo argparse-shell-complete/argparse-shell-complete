@@ -406,6 +406,15 @@ value_list() {
   fi
 }
 
+exported_variables() {
+  COMPREPLY=()
+
+  local VAR
+  for VAR in $(declare -p -x | sed 's/=.*//; s/.* //'); do
+    [[ "$VAR" == "$cur"* ]] && COMPREPLY+=("$VAR")
+  done
+}
+
 # TODO: test
 #bash_helper setup -o= progname -o bar
 #bash_helper has_option -o && echo true

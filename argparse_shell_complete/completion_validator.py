@@ -160,7 +160,11 @@ class CompletionValidator:
         return ()
 
     def variable(self, a):
+        try:    option = a.pop(0)
+        except: option = None
         require_no_more(a)
+        if option not in (None, '-x'):
+            raise Exception('Invalid option: %r' % option)
         return ()
 
     def exec(self, a):

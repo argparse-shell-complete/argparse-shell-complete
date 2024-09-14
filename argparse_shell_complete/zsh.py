@@ -64,8 +64,11 @@ class ZshCompleter(shell.ShellCompleter):
     def user(self, ctxt):
         return '_users'
 
-    def variable(self, ctxt):
-        return '_vars'
+    def variable(self, ctxt, option=None):
+        if option == '-x':
+            return '"_parameters -g \'*export*\'"'
+        else:
+            return '_vars'
 
     def exec(self, ctxt, command):
         funcname = ctxt.helpers.use_function('exec')

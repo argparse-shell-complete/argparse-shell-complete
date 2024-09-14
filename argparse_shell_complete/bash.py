@@ -96,7 +96,8 @@ class BashCompletionCompgen(BashCompletionBase):
 
 class BashCompleter(shell.ShellCompleter):
     def none(self, ctxt, *a):
-        return BashCompletionCommand(ctxt, '')
+        # TODO
+        return BashCompletionCommand(ctxt, 'true')
 
     def choices(self, ctxt, choices):
         return Compgen_W(ctxt, choices)
@@ -150,8 +151,12 @@ class BashCompleter(shell.ShellCompleter):
     def user(self, ctxt):
         return BashCompletionCompgen(ctxt, '-A user')
 
-    def variable(self, ctxt):
-        return BashCompletionCompgen(ctxt, '-A variable')
+    def variable(self, ctxt, option=None):
+        if option == '-x':
+            funcname = ctxt.helpers.use_function('exported_variables')
+            return BashCompletionCommand(ctxt, funcname)
+        else:
+            return BashCompletionCompgen(ctxt, '-W variable')
 
     def exec(self, ctxt, command):
         funcname = ctxt.helpers.use_function('exec')
@@ -431,6 +436,7 @@ done'''
 
             r += '  %s%sPOSSIBLE_OPTIONS+=(%s)\n' % (option_guard, when_guard, ' '.join(shell.escape(o) for o in option.option_strings))
         r += '  %s -a -- "$cur" "${POSSIBLE_OPTIONS[@]}"\n' % self.ctxt.helpers.use_function('compgen_w_replacement')
+        r += '  return 0\n'
         r += 'fi'
         return r
 

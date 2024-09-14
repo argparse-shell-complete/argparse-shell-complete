@@ -100,8 +100,11 @@ class FishCompleter(shell.ShellCompleter):
     def user(self, ctxt):
         return FishCompletionCommand("__fish_complete_users")
 
-    def variable(self, ctxt):
-        return FishCompletionCommand("set -n")
+    def variable(self, ctxt, option=None):
+        if option == '-x':
+            return FishCompletionCommand("set -n -x")
+        else:
+            return FishCompletionCommand("set -n")
 
     def exec(self, ctxt, command):
         return FishCompletionCommand(command)

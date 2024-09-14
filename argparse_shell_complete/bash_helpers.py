@@ -368,6 +368,15 @@ elif (( ${#HAVING_VALUES[@]} )); then
 fi
 ''')
 
+_EXPORTED_VARIABLES = helpers.ShellFunction('exported_variables', r'''
+COMPREPLY=()
+
+local VAR
+for VAR in $(declare -p -x | sed 's/=.*//; s/.* //'); do
+  [[ "$VAR" == "$cur"* ]] && COMPREPLY+=("$VAR")
+done
+''')
+
 class BASH_Helpers(helpers.GeneralHelpers):
     def __init__(self, function_prefix):
         super().__init__(function_prefix)
@@ -375,3 +384,4 @@ class BASH_Helpers(helpers.GeneralHelpers):
         self.add_function(_EXEC)
         self.add_function(_BASH_HELPER)
         self.add_function(_VALUE_LIST)
+        self.add_function(_EXPORTED_VARIABLES)
