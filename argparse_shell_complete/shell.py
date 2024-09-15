@@ -102,8 +102,6 @@ def make_completion_funcname_for_context(ctxt):
         return '%s_%s' % (funcname, ctxt.option.metavar)
 
 class ShellCompleter():
-    # TODO: this is actually a mess
-
     def complete(self, ctxt, completion, *a):
         if not hasattr(self, completion):
             print("Warning: ShellCompleter: Falling back from `%s` to `none`" % (completion,), file=sys.stderr)
@@ -167,7 +165,7 @@ class ShellCompleter():
     def command(self, ctxt):
         return self.fallback(ctxt, 'command', 'file')
 
-    def variable(self, ctxt):
+    def variable(self, ctxt, option):
         return self.fallback(ctxt, 'variable', 'none')
 
     def service(self, ctxt):
