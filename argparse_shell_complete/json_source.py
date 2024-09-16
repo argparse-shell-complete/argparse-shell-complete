@@ -1,3 +1,5 @@
+import json
+
 from collections import OrderedDict, namedtuple
 
 from .commandline import *
@@ -122,4 +124,8 @@ def CommandLine_To_JSON(commandline, config=None):
     commandline_json = []
     get_CommandLine_Objects(commandline, commandline_json)
     return commandline_json
+
+def load_from_file(file):
+    with open(file, 'r') as fh:
+        return JSON_To_Commandline(json.load(fh))
 

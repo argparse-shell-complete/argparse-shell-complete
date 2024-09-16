@@ -3,6 +3,7 @@
 import sys
 import argparse
 
+from . import file_loader
 from .commandline import *
 
 def get_complete(action):
@@ -137,4 +138,53 @@ def ArgumentParser_to_CommandLine(parser, prog=None, description=None):
                         break
 
     return commandline
+
+def find_objects_by_type(module, type):
+    r = []
+
+    for obj_name in dir(module):
+        obj = getattr(module, obj_name)
+        if isinstance(obj, type):
+            r.append(obj)
+
+    return r
+
+def find_RootArgumentParsers(module):
+    ArgumentParsers = find_objects_by_type(module, argparse.ArgumentParser)
+    SubParsersActions  = find_objects_by_type(module, argparse._SubParsersAction)
+
+    for action in SubParsersActions:
+        for parser in action.choices.values():
+            try:
+                ArgumentParsers.remove(parser)
+            except:
+                pass
+
+    return ArgumentParsers
+
+def load_from_file(file, parser_variable=None, parser_blacklist=[]):
+    try:
+        module = file_loader.import_file(file)
+    except Exception as e:
+        print(e)
+        print("Warning: failed to load `%s` using importlib, falling back to `exec`" % file, file=sys.stderr)
+        module = file_loader.execute_file(file)
+
+    if parser_variable is not None:
+        try:
+            parser = getattr(module, parser_variable)
+        except:
+            raise Exception("No variable named `%s` found in `%s`" % (parser_variable, file))
+    else:
+        parsers = find_RootArgumentParsers(module)
+        for blacklisted in parser_blacklist:
+            try:    parsers.remove(blacklisted)
+            except: pass
+        if len(parsers) == 0:
+            raise Exception("Could not find any ArgumentParser object in `%s`" % file)
+        elif len(parsers) > 1:
+            raise Exception("Found too many ArgumentParser objects in `%s`" % file)
+        parser = parsers[0]
+
+    return ArgumentParser_to_CommandLine(parser)
 

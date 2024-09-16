@@ -5,23 +5,22 @@ import sys
 import json
 import argparse
 
-from argparse_shell_complete import zsh, bash, fish, commandline, argparse_mod
-from argparse_shell_complete import file_loader, argparse_source, json_source
-from argparse_shell_complete import config as _config
+from argparse_shell_complete import zsh, bash, fish, argparse_mod
+from argparse_shell_complete import argparse_source, json_source, yaml_source
+from argparse_shell_complete import config
 
 
 def parse_bool(s):
-    if s.lower() == 'true':
-        return True
-    if s.lower() == 'false':
-        return False
-    raise Exception("Not a bool: %r" % s)
+    try:
+        return {'true': True, 'false': False}[s.lower()]
+    except:
+        raise Exception("Not a bool: %r" % s)
 
 
 p = argparse.ArgumentParser('argparse-shell-complete',
     description='Generate shell auto completion files')
 
-p.add_argument('shell', choices=('bash', 'fish', 'zsh', 'json'),
+p.add_argument('shell', choices=('bash', 'fish', 'zsh', 'json', 'yaml'),
     help='Specify the shell type for the completion script')
 
 p.add_argument('source_file',
@@ -82,91 +81,82 @@ grp.add_argument('-u', '--uninstall-system-wide', default=False, action='store_t
 _argparse_shell_complete_argument_parser = p
 del p
 
-def find_ArgumentParser(module):
-    found_parsers = []
+def load_from_file(opts, allowed_inputs):
+    json_exception = None
+    yaml_exception = None
+    argparse_exception = None
 
-    for obj_name in dir(module):
-        obj = getattr(module, obj_name)
-        if isinstance(obj, argparse.ArgumentParser) and obj is not _argparse_shell_complete_argument_parser:
-            found_parsers.append(obj)
+    for allowed_input in allowed_inputs:
+        if allowed_input == 'json':
+            try:
+                return json_source.load_from_file(opts.source_file)
+            except Exception as e:
+                json_exception = e
+        elif allowed_input == 'yaml':
+            try:
+                return yaml_source.load_from_file(opts.source_file)
+            except Exception as e:
+                yaml_exception = e
+        elif allowed_input == 'python':
+            try:
+                return argparse_source.load_from_file(opts.source_file,
+                    opts.parser_variable,
+                    parser_blacklist=[_argparse_shell_complete_argument_parser])
+            except Exception as e:
+                argparse_exception = e
 
-    if len(found_parsers) == 1:
-        return found_parsers[0]
-    elif len(found_parsers) > 1:
-        # Find root parser
-        # TODO: this doesn't work well with multiple subcommands ("prog cmd1 cmd2")
-        for parser in found_parsers:
-            if parser._subparsers is not None:
-                return parser
+    if json_exception:
+        print('JSON ERROR:', json_exception, file=sys.stderr)
 
-    return None
+    if yaml_exception:
+        print('YAML ERROR:', yaml_exception, file=sys.stderr)
 
-def load_from_json(file):
-    with open(file, 'r') as fh:
-        return json_source.JSON_To_Commandline(json.load(fh))
+    if argparse_exception:
+        print('PYTHON ERROR:', argparse_exception, file=sys.stderr)
 
-def load_from_python(file, parser_variable=None):
-    try:
-        module = file_loader.import_file(file)
-    except Exception as e:
-        print(e)
-        print("Warning: failed to load `%s` using importlib, falling back to `exec`" % file, file=sys.stderr)
-        module = file_loader.execute_file(file)
-
-    if parser_variable is not None:
-        try:
-            parser = getattr(module, parser_variable)
-        except:
-            raise Exception("No variable found named %r" % parser_variable)
-    else:
-        parser = find_ArgumentParser(module)
-
-    if parser is None:
-        raise Exception("Could not find any ArgumentParser object in `%s`" % file)
-
-    return argparse_source.ArgumentParser_to_CommandLine(parser)
+    raise Exception("Failed to load '%s' using these input methods: %r" % (opts.source_file, allowed_inputs))
 
 def generate(opts):
     if not os.path.exists(opts.source_file):
         raise FileNotFoundError(opts.source_file)
 
     if opts.shell == 'json':
-        try:    cmdline = load_from_json(opts.source_file)
-        except: cmdline = load_from_python(opts.source_file, opts.parser_variable)
-
+        cmdline = load_from_file(opts, ['json', 'yaml', 'python'])
         objs = json_source.CommandLine_To_JSON(cmdline)
         r = json.dumps(objs, indent=None)
         fh = open(opts.output, 'w') if opts.output else sys.stdout
         print(r, file=fh)
         return
 
-    try:
-        cmdline = load_from_json(opts.source_file)
-    except:
-        if opts.allow_python:
-            cmdline = load_from_python(opts.source_file, opts.parser_variable)
-        else:
-            raise
+    if opts.shell == 'yaml':
+        cmdline = load_from_file(opts, ['json', 'yaml', 'python'])
+        r = yaml_source.CommandLine_To_YAML(cmdline)
+        fh = open(opts.output, 'w') if opts.output else sys.stdout
+        print(r, file=fh)
+        return
+
+    # TODO: if --allow-python
+    cmdline = load_from_file(opts, ['json', 'yaml', 'python'])
 
     if opts.program_name is None:
         opts.program_name = cmdline.prog
 
-    config = _config.Config()
-    config.set_abbreviate_commands(opts.abbreviate_commands)
-    config.set_abbreviate_options(opts.abbreviate_options)
-    config.set_multiple_options(opts.multiple_options)
-    config.set_inherit_options(opts.inherit_options)
-    config.set_vim_modeline(opts.vim_modeline)
-    config.set_zsh_compdef(opts.zsh_compdef)
-    config.set_fish_fast(opts.fish_fast)
-    config.set_fish_inline_conditions(opts.fish_inline_conditions)
-    config.include_many_files(opts.include_file or [])
+    conf = config.Config()
+    conf.set_abbreviate_commands(opts.abbreviate_commands)
+    conf.set_abbreviate_options(opts.abbreviate_options)
+    conf.set_multiple_options(opts.multiple_options)
+    conf.set_inherit_options(opts.inherit_options)
+    conf.set_vim_modeline(opts.vim_modeline)
+    conf.set_zsh_compdef(opts.zsh_compdef)
+    conf.set_fish_fast(opts.fish_fast)
+    conf.set_fish_inline_conditions(opts.fish_inline_conditions)
+    conf.include_many_files(opts.include_file or [])
 
     r = {
         'bash': bash.generate_completion,
         'fish': fish.generate_completion,
         'zsh':  zsh.generate_completion
-    }[opts.shell](cmdline, opts.program_name, config)
+    }[opts.shell](cmdline, opts.program_name, conf)
 
     if opts.install_system_wide is True or opts.uninstall_system_wide is True:
         file = {
