@@ -1,4 +1,4 @@
 This project has moved
 ======================
 
-This project is continued as [cracy-complete](https://github.com/cracy-complete/cracy-complete).
+This project is continued as [crazy-complete](https://github.com/crazy-complete/crazy-complete).
