@@ -16,11 +16,18 @@ from argparse_shell_complete import argparse_mod
 > Do not add any completion code.
 > Note: This is the default.
 
-```
+```python
 argp = argparse.ArgumentParser('foo')
 argp.add_argument('--none').complete('none')
 # This line is the same as above:
 argp.add_argument('--none2')
+```
+
+```yaml
+prog: example
+options:
+  - option_strings: ["--none"]
+    complete: ["none"]
 ```
 
 **file(opts={})**
